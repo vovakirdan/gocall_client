@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { login } from "../services/api";
+import { saveToken } from "../services/token";
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState("");
@@ -9,7 +10,8 @@ const Login: React.FC = () => {
   const handleLogin = async () => {
     try {
       const token = await login(username, password);
-      localStorage.setItem("token", token); // save token in localStorage
+      await saveToken(token);
+      // localStorage.setItem("token", token); // save token in localStorage
       window.location.href = "/home";
     } catch (err: any) {
       setError(err.message); // show err

@@ -39,6 +39,16 @@
           "path": "$APPDATA/*",
           "write": true,
           "read": true
+        },
+        {
+          "path": "$LOCALDATA",
+          "write": true,
+          "read": true
+        },
+        {
+          "path": "$APPDATA",
+          "write": true,
+          "read": true
         }
       ]
     }

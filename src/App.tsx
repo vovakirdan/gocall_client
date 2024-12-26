@@ -4,7 +4,7 @@ import Login from "./pages/Login";
 import Home from "./pages/Home";
 import { checkAPIStatus } from "./services/api";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { getToken, saveToken, removeToken } from "./services/token";
+import { getToken } from "./services/token";
 
 function App() {
   const [apiAvailable, setApiAvailable] = useState(true);
@@ -12,10 +12,14 @@ function App() {
 
   useEffect(() => {
     const checkAPI = async () => {
+      console.log("Checking API availability...");
       const isAvailable = await checkAPIStatus();
+      console.log("API available:", isAvailable);
       setApiAvailable(isAvailable);
 
+      console.log("Fetching token...");
       const storedToken = await getToken();
+      console.log("Token fetched:", storedToken);
       setToken(storedToken);
     };
 
