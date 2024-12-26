@@ -1,5 +1,11 @@
 export const API_BASE_URL = "http://localhost:8080/api";
 
+const headers = (token?: string) => ({
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    "X-Client-Type": "desktop",
+  });
+
 export interface Room {
     ID: number;
     UserID: number;
@@ -35,9 +41,7 @@ export async function login(username: string, password: string): Promise<string>
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: headers(),
         body: JSON.stringify({ username, password }),
       });
   
@@ -55,9 +59,7 @@ export async function login(username: string, password: string): Promise<string>
 export async function fetchRooms(token: string): Promise<Room[]> {
     const response = await fetch(`${API_BASE_URL}/rooms`, {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: headers(token),
     });
   
     if (!response.ok) {
