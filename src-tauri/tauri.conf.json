@@ -31,5 +31,16 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "fs": {
+      "scope": [
+        {
+          "path": "$APPDATA/*",
+          "write": true,
+          "read": true
+        }
+      ]
+    }
   }
 }

@@ -4,14 +4,19 @@ import Login from "./pages/Login";
 import Home from "./pages/Home";
 import { checkAPIStatus } from "./services/api";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { getToken, saveToken, removeToken } from "./services/token";
 
 function App() {
   const [apiAvailable, setApiAvailable] = useState(true);
+  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
     const checkAPI = async () => {
       const isAvailable = await checkAPIStatus();
       setApiAvailable(isAvailable);
+
+      const storedToken = await getToken();
+      setToken(storedToken);
     };
 
     checkAPI();
@@ -30,7 +35,7 @@ function App() {
     <Router>
       <Routes>
         {/* default to login */}
-        <Route path="/" element={<Navigate to="/login" />} />
+        <Route path="/" element={<Navigate to={token ? "/home" : "/login" } />} />
         {/* login */}
         <Route path="/login" element={<Login />} />
         {/* protected route */}
