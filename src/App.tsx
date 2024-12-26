@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
 import { checkAPIStatus } from "./services/api";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   const [apiAvailable, setApiAvailable] = useState(true);
@@ -28,8 +29,19 @@ function App() {
   return (
     <Router>
       <Routes>
+        {/* default to login */}
+        <Route path="/" element={<Navigate to="/login" />} />
+        {/* login */}
         <Route path="/login" element={<Login />} />
-        <Route path="/home" element={<Home />} />
+        {/* protected route */}
+        <Route
+          path="/home"
+          element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </Router>
   );

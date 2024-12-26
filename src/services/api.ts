@@ -15,6 +15,21 @@ export async function checkAPIStatus(): Promise<boolean> {
     return false;
   }
 }
+
+export async function validateToken(token: string): Promise<boolean> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/validate`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+  
+      return response.ok;
+    } catch (error) {
+      return false;
+    }
+}  
   
 export async function login(username: string, password: string): Promise<string> {
     try {
