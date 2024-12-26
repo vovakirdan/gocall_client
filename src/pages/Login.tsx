@@ -9,10 +9,10 @@ const Login: React.FC = () => {
   const handleLogin = async () => {
     try {
       const token = await login(username, password);
-      localStorage.setItem("token", token); // Save token to localStorage
-      window.location.href = "/home"; // open home
-    } catch (err) {
-      setError("Invalid username or password");
+      localStorage.setItem("token", token); // save token in localStorage
+      window.location.href = "/home";
+    } catch (err: any) {
+      setError(err.message); // show err
     }
   };
 

@@ -5,24 +5,37 @@ export interface Room {
     UserID: number;
     Name: string;
     CreatedAt: string;
-  }  
-
-export async function login(username: string, password: string): Promise<string> {
-  const response = await fetch(`${API_BASE_URL}/auth/login`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ username, password }),
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to login");
-  }
-
-  const data = await response.json();
-  return data.token; // Returns JWT
 }
+
+export async function checkAPIStatus(): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/login`, { method: "OPTIONS" });
+    return response.ok;
+  } catch (error) {
+    return false;
+  }
+}
+  
+export async function login(username: string, password: string): Promise<string> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
+  
+      if (!response.ok) {
+        throw new Error("Failed to login");
+      }
+  
+      const data = await response.json();
+      return data.token; // return JWT
+    } catch (error) {
+      throw new Error("Unable to connect to the server");
+    }
+  }  
 
 export async function fetchRooms(token: string): Promise<Room[]> {
     const response = await fetch(`${API_BASE_URL}/rooms`, {
