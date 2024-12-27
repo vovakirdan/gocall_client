@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import Login from "./pages/Login";
+import LoginSignupPage from "./pages/LoginSignupPage";
 import Home from "./pages/Home";
 import { checkAPIStatus } from "./services/api";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -34,7 +34,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<Navigate to="/home" />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<LoginSignupPage />} />
           <Route
             path="/home"
             element={

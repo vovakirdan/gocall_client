@@ -38,23 +38,43 @@ export async function validateToken(token: string): Promise<boolean> {
 }  
   
 export async function login(username: string, password: string): Promise<string> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: "POST",
-        headers: headers(),
-        body: JSON.stringify({ username, password }),
-      });
-  
-      if (!response.ok) {
-        throw new Error("Failed to login");
-      }
-  
-      const data = await response.json();
-      return data.token; // return JWT
-    } catch (error) {
-      throw new Error("Unable to connect to the server");
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ username, password }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to login");
     }
-  }  
+
+    const data = await response.json();
+    return data.token; // return JWT
+  } catch (error: any) {
+    throw new Error(error.message || "Unable to connect to the server");
+  }
+}
+
+export async function register(username: string, password: string): Promise<string> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ username, password }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to register");
+    }
+
+    return "Registration successful";
+  } catch (error: any) {
+    throw new Error(error.message || "Unable to connect to the server");
+  }
+}
 
 export async function fetchRooms(token: string): Promise<Room[]> {
     const response = await fetch(`${API_BASE_URL}/rooms`, {
