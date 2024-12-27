@@ -59,7 +59,6 @@ const LoginSignupPage: React.FC = () => {
                 {isLogin ? "Welcome back" : "Create an account"}
               </h1>
               <div className="space-y-4">
-                {/* Поле для ввода username */}
                 <InputField
                   icon={User}
                   placeholder="Username"
@@ -67,7 +66,6 @@ const LoginSignupPage: React.FC = () => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                 />
-                {/* Поле для ввода password */}
                 <InputField
                   icon={Lock}
                   placeholder="Password"
@@ -77,7 +75,9 @@ const LoginSignupPage: React.FC = () => {
                 />
               </div>
               {error && <p className="text-red-500 mt-4">{error}</p>}
-              {/* Кнопка отправки */}
+              {successMessage && (
+                <p className="text-green-500 mt-4">{successMessage}</p>
+              )}
               <div className="mt-8">
                 <button
                   onClick={handleSubmit}
@@ -93,7 +93,7 @@ const LoginSignupPage: React.FC = () => {
           </AnimatePresence>
         </div>
       </div>
-      {/* Правая панель для переключения режимов */}
+      {/* Правая панель */}
       <div
         className={`w-full md:w-1/2 flex items-center justify-center p-8 md:p-16 ${
           isLogin ? "bg-blue-600" : "bg-green-600"
