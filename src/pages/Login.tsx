@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { login } from "../services/api";
-import { saveToken } from "../services/token";
+import { saveToken } from "../adapters/token-adapter";
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState("");

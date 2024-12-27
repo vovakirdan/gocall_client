@@ -4,7 +4,8 @@ import Login from "./pages/Login";
 import Home from "./pages/Home";
 import { checkAPIStatus } from "./services/api";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { getToken } from "./services/token";
+import { getToken } from "./adapters/token-adapter";
+import { isDesktop } from "./utils/platform";
 
 function App() {
   const [apiAvailable, setApiAvailable] = useState(true);
@@ -12,6 +13,7 @@ function App() {
 
   useEffect(() => {
     const checkAPI = async () => {
+      console.log(isDesktop() ? "I am desktop" : "I am browser")
       console.log("Checking API availability...");
       const isAvailable = await checkAPIStatus();
       console.log("API available:", isAvailable);
