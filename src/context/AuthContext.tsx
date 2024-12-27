@@ -11,11 +11,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [token, setTokenState] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadToken = async () => {
       const storedToken = await getToken();
       setTokenState(storedToken);
+      setLoading(false); // Токен загружен, прекращаем загрузку
     };
 
     loadToken();
@@ -30,7 +32,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = () => setToken(null);
+  const logout = () => {
+    setToken(null);
+  };
+
+  if (loading) {
+    // Показываем "загрузку", пока токен загружается
+    return <div>Loading...</div>;
+  }
 
   return (
     <AuthContext.Provider value={{ token, setToken, logout }}>

@@ -12,9 +12,10 @@ const Login: React.FC = () => {
     try {
       const token = await login(username, password);
       await setToken(token);
+      // После сохранения токена перенаправляем
       window.location.href = "/home";
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || "Login failed");
     }
   };
 
