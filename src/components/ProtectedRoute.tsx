@@ -9,7 +9,7 @@ interface ProtectedRouteProps {
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { token } = useAuth();
 
-  if (token === null) {
+  if (token === undefined) {
     return <div>Loading...</div>;
   }
 
