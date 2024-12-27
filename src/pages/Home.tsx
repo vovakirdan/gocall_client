@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { fetchRooms, createRoom, Room } from "../services/api";
+import { fetchRooms, createRoom, deleteRoom, Room } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { fetchFriends, addFriend, removeFriend } from "../services/friends-api";
 
@@ -30,22 +30,58 @@ const Home: React.FC = () => {
     loadData();
   }, [token]);
 
-  // Создание комнаты
   const handleCreateRoom = async () => {
     if (!newRoomName.trim()) return;
     try {
       const room = await createRoom(newRoomName, token!);
-      setRooms((prev) => [...prev, room.room]);
+      setRooms((prev) => [...prev, room]);
       setNewRoomName("");
     } catch (err) {
       setError("Failed to create room");
     }
   };
 
+const handleJoinRoom = async (roomID: string) => {
+  try {
+    const ws = new WebSocket(`ws://localhost:8000/ws`);
+
+    ws.onopen = () => {
+      // Отправка сообщения для подключения к комнате
+      ws.send(JSON.stringify({ type: "join_room", roomID }));
+      console.log(`Joining room: ${roomID}`);
+    };
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === "success" && data.message === "room_joined") {
+        console.log(`Successfully joined room: ${roomID}`);
+      } else if (data.type === "error") {
+        console.error(`Error joining room: ${data.message}`);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+
+    ws.onclose = () => {
+      console.log("WebSocket connection closed.");
+    };
+  } catch (error) {
+    console.error("Failed to join room:", error);
+    setError("Failed to join room");
+  }
+};
+
   // Удаление комнаты
-  const handleDeleteRoom = (roomId: number) => {
-    setRooms((prev) => prev.filter((room) => room.ID !== roomId));
-  };
+  const handleDeleteRoom = async (roomID: string) => {
+    try {
+      await deleteRoom(roomID, token!);
+      setRooms((prev) => prev.filter((room) => room.RoomID !== roomID));
+    } catch (err) {
+      setError("Failed to delete room");
+    }
+  };  
 
   // Добавление друга
   const handleAddFriend = async () => {
@@ -113,16 +149,24 @@ const Home: React.FC = () => {
           <ul className="mt-4 space-y-2">
             {rooms.map((room) => (
               <li
-                key={room.ID}
+                key={room.RoomID}
                 className="flex justify-between items-center bg-gray-700 px-4 py-2 rounded-lg"
               >
-                {room.Name}
-                <button
-                  onClick={() => handleDeleteRoom(room.ID)}
-                  className="text-red-400 hover:text-red-600"
-                >
-                  Delete
-                </button>
+                <span>{room.Name}</span>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => handleJoinRoom(room.RoomID)}
+                    className="text-blue-400 hover:text-blue-600"
+                  >
+                    Join
+                  </button>
+                  <button
+                    onClick={() => handleDeleteRoom(room.RoomID)}
+                    className="text-red-400 hover:text-red-600"
+                  >
+                    Delete
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

@@ -7,10 +7,10 @@ const headers = (token?: string) => ({
   });
 
 export interface Room {
-    ID: number;
-    UserID: number;
-    Name: string;
-    CreatedAt: string;
+  RoomID: string;
+  UserID: number;
+  Name: string;
+  CreatedAt: string;
 }
 
 export async function checkAPIStatus(): Promise<boolean> {
@@ -90,19 +90,35 @@ export async function fetchRooms(token: string): Promise<Room[]> {
     return data.rooms as Room[];
   }  
 
-export async function createRoom(name: string, token: string): Promise<any> {
+export async function createRoom(name: string, token: string): Promise<Room> {
   const response = await fetch(`${API_BASE_URL}/rooms/create`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    headers: headers(token),
     body: JSON.stringify({ name }),
   });
 
   if (!response.ok) {
-    throw new Error("Failed to create room");
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to create room");
   }
 
-  return await response.json();
+  const data = await response.json();
+  return {
+    RoomID: data.roomID,
+    Name: data.name,
+    UserID: 0, // todo Replace with the real user ID if available in the response
+    CreatedAt: new Date().toISOString(),
+  };
+}
+
+export async function deleteRoom(roomID: string, token: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/rooms/${roomID}`, {
+    method: "DELETE",
+    headers: headers(token),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to delete room");
+  }
 }
