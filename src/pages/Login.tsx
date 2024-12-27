@@ -1,20 +1,20 @@
 import React, { useState } from "react";
 import { login } from "../services/api";
-import { saveToken } from "../adapters/token-adapter";
+import { useAuth } from "../context/AuthContext";
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const { setToken } = useAuth();
 
   const handleLogin = async () => {
     try {
       const token = await login(username, password);
-      await saveToken(token);
-      // localStorage.setItem("token", token); // save token in localStorage
+      await setToken(token);
       window.location.href = "/home";
     } catch (err: any) {
-      setError(err.message); // show err
+      setError(err.message);
     }
   };
 

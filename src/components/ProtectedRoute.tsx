@@ -1,30 +1,19 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Navigate } from "react-router-dom";
-import { getToken } from "../adapters/token-adapter";
+import { useAuth } from "../context/AuthContext";
 
 interface ProtectedRouteProps {
   children: React.ReactElement;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const { token } = useAuth();
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      const token = await getToken();
-      setIsAuthenticated(!!token);
-    };
-
-    checkAuth();
-  }, []);
-
-  // while checking show "loading" // todo make it beautiful!
-  if (isAuthenticated === null) {
+  if (token === null) {
     return <div>Loading...</div>;
   }
 
-  // If no token go login
-  if (!isAuthenticated) {
+  if (!token) {
     return <Navigate to="/login" />;
   }
 

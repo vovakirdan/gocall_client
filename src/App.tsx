@@ -4,27 +4,19 @@ import Login from "./pages/Login";
 import Home from "./pages/Home";
 import { checkAPIStatus } from "./services/api";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { getToken } from "./adapters/token-adapter";
+import { AuthProvider } from "./context/AuthContext";
 import { isDesktop } from "./utils/platform";
 
 function App() {
   const [apiAvailable, setApiAvailable] = useState(true);
-  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log(isDesktop() ? "I am desktop" : "I am browser");
+    console.log("Checking API availability...");
     const checkAPI = async () => {
-      console.log(isDesktop() ? "I am desktop" : "I am browser")
-      console.log("Checking API availability...");
       const isAvailable = await checkAPIStatus();
-      console.log("API available:", isAvailable);
       setApiAvailable(isAvailable);
-
-      console.log("Fetching token...");
-      const storedToken = await getToken();
-      console.log("Token fetched:", storedToken);
-      setToken(storedToken);
     };
-
     checkAPI();
   }, []);
 
@@ -38,23 +30,22 @@ function App() {
   }
 
   return (
-    <Router>
-      <Routes>
-        {/* default to login */}
-        <Route path="/" element={<Navigate to={token ? "/home" : "/login" } />} />
-        {/* login */}
-        <Route path="/login" element={<Login />} />
-        {/* protected route */}
-        <Route
-          path="/home"
-          element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Navigate to="/home" />} />
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/home"
+            element={
+              <ProtectedRoute>
+                <Home />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
 
