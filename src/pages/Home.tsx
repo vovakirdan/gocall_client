@@ -3,6 +3,8 @@ import { fetchRooms, createRoom, deleteRoom, Room } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { fetchFriends, addFriend, removeFriend } from "../services/friends-api";
 import { useNavigate } from "react-router-dom";
+import { SFUClient } from "../services/sfuClient";
+import { useSFUClient } from "../context/SFUClientContext";
 
 const Home: React.FC = () => {
   const [friends, setFriends] = useState<string[]>([]);
@@ -12,6 +14,7 @@ const Home: React.FC = () => {
   const [error, setError] = useState(""); // Ошибки
   const { token, logout } = useAuth();
   const navigate = useNavigate();
+  const sfuClient = useSFUClient();
 
   // Загрузка друзей и комнат
   useEffect(() => {
@@ -45,39 +48,33 @@ const Home: React.FC = () => {
 
   const handleJoinRoom = async (roomID: string, roomName: string) => {
     try {
-      const ws = new WebSocket(`ws://localhost:8000/ws`);
-  
-      ws.onopen = () => {
-        ws.send(
-          JSON.stringify({
-            type: "join_room",
-            data: { roomID, roomName },
-          })
-        );
-        console.log(`Joining room: ${roomID}`);
+      await sfuClient.connect(roomID, roomName);
+
+      // Обработка события получения client_id
+      const handleClientID = (clientID: string) => {
+        console.log('Successfully joined room with ClientID:', clientID);
+        navigate(`/room/${roomID}`, { state: { roomName } });
       };
-  
-      ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.type === "client_id") {
-          console.log("Successfully joined room with ClientID:", data.data);
-          // window.location.href = `/room/${roomID}`;
-          navigate(`/room/${roomID}`, { state: { roomName } })
-        } else if (data.type === "error") {
-          console.error(`Error joining room: ${data.message}`);
-        }
+
+      sfuClient.on('client_id', handleClientID);
+
+      // Обработка ошибок
+      const handleError = (errorMessage: string) => {
+        console.error(`Error joining room: ${errorMessage}`);
+        setError(`Error joining room: ${errorMessage}`);
       };
-  
-      ws.onerror = (error) => {
-        console.error("WebSocket error:", error);
-      };
-  
-      ws.onclose = () => {
-        console.log("WebSocket connection closed.");
+
+      sfuClient.on('error', handleError);
+
+      // Очистка подписок при размонтировании компонента или изменении комнаты
+      return () => {
+        sfuClient.off('client_id', handleClientID);
+        sfuClient.off('error', handleError);
+        sfuClient.close();
       };
     } catch (error) {
-      console.error("Failed to join room:", error);
-      setError("Failed to join room");
+      console.error('Failed to join room:', error);
+      setError('Failed to join room');
     }
   };  
 
