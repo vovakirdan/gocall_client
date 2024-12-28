@@ -76,6 +76,21 @@ export async function register(username: string, password: string): Promise<stri
   }
 }
 
+export async function getUserID(token: string): Promise<string> {
+  const response = await fetch(`${API_BASE_URL}/user/id`, {
+    method: "GET",
+    headers: headers(token),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to fetch user ID");
+  }
+
+  const data = await response.json();
+  return data.userUUID;
+}
+
 export async function fetchRooms(token: string): Promise<Room[]> {
     const response = await fetch(`${API_BASE_URL}/rooms`, {
       method: "GET",
@@ -106,7 +121,7 @@ export async function createRoom(name: string, token: string): Promise<Room> {
   return {
     RoomID: data.roomID,
     Name: data.name,
-    UserID: 0, // todo Replace with the real user ID if available in the response
+    UserID: data.UserID,
     CreatedAt: new Date().toISOString(),
   };
 }
