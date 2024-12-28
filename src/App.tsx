@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import LoginSignupPage from "./pages/LoginSignupPage";
 import Home from "./pages/Home";
+import RoomPage from "./pages/RoomPage";
 import { checkAPIStatus } from "./services/api";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
@@ -35,6 +36,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/home" />} />
           <Route path="/login" element={<LoginSignupPage />} />
+          <Route path="/room/:roomID" element={<RoomPage />} />
           <Route
             path="/home"
             element={

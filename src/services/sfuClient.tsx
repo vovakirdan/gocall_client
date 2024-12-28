@@ -2,14 +2,21 @@ export class SFUClient {
     private ws: WebSocket | null = null;
     private peerConnection: RTCPeerConnection | null = null;
     private localStream: MediaStream | null = null;
+    public remoteStreams: MediaStream[] = [];
   
     constructor(private url: string) {}
   
-    async connect() {
+    async connect(roomID: string, roomName: string) {
       this.ws = new WebSocket(this.url);
   
       this.ws.onopen = () => {
         console.log("WebSocket connection established");
+        this.ws?.send(
+            JSON.stringify({
+                type: "join_room",
+                data: { roomID, roomName },
+            })
+        );
       };
   
       this.ws.onmessage = async (event) => {
@@ -30,6 +37,9 @@ export class SFUClient {
   
           case "tracks_available":
             this.subscribeToTracks(message.data);
+            break;
+          case "error":
+            console.error("SFU error:", message.data);
             break;
   
           default:
@@ -69,6 +79,7 @@ export class SFUClient {
       // Handle remote tracks
       this.peerConnection.ontrack = (event) => {
         console.log("Received remote track:", event.streams[0]);
+        this.remoteStreams.push(event.streams[0]);
       };
   
       // Create offer
@@ -83,7 +94,7 @@ export class SFUClient {
   
     async subscribeToTracks(tracks: any) {
       console.log("Available tracks:", tracks);
-      // Example: Automatically subscribe to all tracks
+      // Automatically subscribe to all tracks
       this.ws?.send(
         JSON.stringify({ type: "subscribe_tracks", data: Object.keys(tracks) })
       );

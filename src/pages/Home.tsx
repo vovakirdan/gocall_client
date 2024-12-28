@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { fetchRooms, createRoom, deleteRoom, Room } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { fetchFriends, addFriend, removeFriend } from "../services/friends-api";
+import { useNavigate } from "react-router-dom";
 
 const Home: React.FC = () => {
   const [friends, setFriends] = useState<string[]>([]);
@@ -10,6 +11,7 @@ const Home: React.FC = () => {
   const [newFriend, setNewFriend] = useState(""); // Новый друг
   const [error, setError] = useState(""); // Ошибки
   const { token, logout } = useAuth();
+  const navigate = useNavigate();
 
   // Загрузка друзей и комнат
   useEffect(() => {
@@ -57,8 +59,10 @@ const Home: React.FC = () => {
   
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        if (data.type === "success" && data.message === "room_joined") {
-          console.log(`Successfully joined room: ${roomID}`);
+        if (data.type === "client_id") {
+          console.log("Successfully joined room with ClientID:", data.data);
+          // window.location.href = `/room/${roomID}`;
+          navigate(`/room/${roomID}`, { state: { roomName } })
         } else if (data.type === "error") {
           console.error(`Error joining room: ${data.message}`);
         }
