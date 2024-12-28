@@ -41,37 +41,41 @@ const Home: React.FC = () => {
     }
   };
 
-const handleJoinRoom = async (roomID: string) => {
-  try {
-    const ws = new WebSocket(`ws://localhost:8000/ws`);
-
-    ws.onopen = () => {
-      // Отправка сообщения для подключения к комнате
-      ws.send(JSON.stringify({ type: "join_room", roomID }));
-      console.log(`Joining room: ${roomID}`);
-    };
-
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === "success" && data.message === "room_joined") {
-        console.log(`Successfully joined room: ${roomID}`);
-      } else if (data.type === "error") {
-        console.error(`Error joining room: ${data.message}`);
-      }
-    };
-
-    ws.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
-
-    ws.onclose = () => {
-      console.log("WebSocket connection closed.");
-    };
-  } catch (error) {
-    console.error("Failed to join room:", error);
-    setError("Failed to join room");
-  }
-};
+  const handleJoinRoom = async (roomID: string, roomName: string) => {
+    try {
+      const ws = new WebSocket(`ws://localhost:8000/ws`);
+  
+      ws.onopen = () => {
+        ws.send(
+          JSON.stringify({
+            type: "join_room",
+            data: { roomID, roomName },
+          })
+        );
+        console.log(`Joining room: ${roomID}`);
+      };
+  
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === "success" && data.message === "room_joined") {
+          console.log(`Successfully joined room: ${roomID}`);
+        } else if (data.type === "error") {
+          console.error(`Error joining room: ${data.message}`);
+        }
+      };
+  
+      ws.onerror = (error) => {
+        console.error("WebSocket error:", error);
+      };
+  
+      ws.onclose = () => {
+        console.log("WebSocket connection closed.");
+      };
+    } catch (error) {
+      console.error("Failed to join room:", error);
+      setError("Failed to join room");
+    }
+  };  
 
   // Удаление комнаты
   const handleDeleteRoom = async (roomID: string) => {
@@ -155,7 +159,7 @@ const handleJoinRoom = async (roomID: string) => {
                 <span>{room.Name}</span>
                 <div className="flex space-x-2">
                   <button
-                    onClick={() => handleJoinRoom(room.RoomID)}
+                    onClick={() => handleJoinRoom(room.RoomID, room.Name)}
                     className="text-blue-400 hover:text-blue-600"
                   >
                     Join

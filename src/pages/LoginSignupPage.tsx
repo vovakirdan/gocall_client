@@ -109,8 +109,9 @@ const LoginSignupPage: React.FC = () => {
               : "Sign in to access your account and continue."}
           </p>
           <button
-            className="bg-white px-6 py-3 rounded-lg"
-            style={{ color: isLogin ? "#2563EB" : "#059669" }}
+            className={`bg-white px-6 py-3 rounded-lg ${
+              isLogin ? "text-blue-600" : "text-green-600"
+            }`}
             onClick={toggleMode}
           >
             {isLogin ? "Sign Up" : "Sign In"}
