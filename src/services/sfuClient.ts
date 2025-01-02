@@ -96,9 +96,20 @@ export function createSfuClient(params: CreateSfuClientParams) {
             break;
           }
           case "tracks_available": {
-            // Пример: тут можно отправить subscribe_tracks
-            // Но в index.html оно делалось автоматически
             console.log("tracks_available:", msg.data);
+            const availableTracks = msg.data; // объект вида { trackID1: {...}, trackID2: {...}, ... }
+          
+            // Собираем массив для подписки
+            const subTracks = [];
+            for (const uid in availableTracks) {
+              subTracks.push({
+                client_id: availableTracks[uid].client_id,
+                track_id:  availableTracks[uid].id
+              });
+            }
+          
+            // Отправляем запрос на подписку
+            ws?.send(JSON.stringify({ type: "subscribe_tracks", data: subTracks }));
             break;
           }
           case "tracks_added": {
