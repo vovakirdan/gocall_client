@@ -45,38 +45,13 @@ const Home: React.FC = () => {
 
   const handleJoinRoom = async (roomID: string, roomName: string) => {
     try {
-      const ws = new WebSocket(`ws://localhost:8000/ws`);
-  
-      ws.onopen = () => {
-        ws.send(
-          JSON.stringify({
-            type: "join_room",
-            data: { roomID, roomName },
-          })
-        );
-        console.log(`Joining room: ${roomID}`);
-      };
-  
-      ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.type === "client_id") {
-          console.log("Successfully joined room with ClientID:", data.data);
-          // window.location.href = `/room/${roomID}`;
-          navigate(`/room/${roomID}`, { state: { roomName } })
-        } else if (data.type === "error") {
-          console.error(`Error joining room: ${data.message}`);
-        }
-      };
-  
-      ws.onerror = (error) => {
-        console.error("WebSocket error:", error);
-      };
-  
-      ws.onclose = () => {
-        console.log("WebSocket connection closed.");
-      };
-    } catch (error) {
-      console.error("Failed to join room:", error);
+      // Navigate to RoomPage, passing roomID as URL param
+      // Optionally pass roomName as a query param if you want to use it there
+      navigate(`/room/${roomID}?name=${encodeURIComponent(roomName)}`);
+      // The actual connection logic (offer/answer exchange, media, etc.)
+      // will be handled inside `RoomPage.tsx`.
+    } catch (err) {
+      console.error("Failed to join room:", err);
       setError("Failed to join room");
     }
   };  
