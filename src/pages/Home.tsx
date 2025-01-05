@@ -11,6 +11,7 @@ const Home: React.FC = () => {
   const [newFriend, setNewFriend] = useState(""); // Новый друг
   const [error, setError] = useState(""); // Ошибки
   const { token, logout } = useAuth();
+  const [popupError, setPopupError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   // Загрузка друзей и комнат
@@ -38,10 +39,11 @@ const Home: React.FC = () => {
       const room = await createRoom(newRoomName, token!);
       setRooms((prev) => [...prev, room]);
       setNewRoomName("");
-    } catch (err) {
-      setError("Failed to create room");
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "An error occurred while creating a room");
     }
-  };
+  };  
 
   const handleJoinRoom = async (roomID: string, roomName: string) => {
     try {
@@ -73,10 +75,10 @@ const Home: React.FC = () => {
       await addFriend(newFriend, token!);
       setFriends((prev) => [...prev, newFriend]);
       setNewFriend("");
-    } catch (err) {
-      setError("Failed to add friend");
+    } catch (err: any) {
+      showErrorPopup(err.message || "An error occurred while adding a friend");
     }
-  };
+  };  
 
   // Удаление друга
   const handleRemoveFriend = (friendName: string) => {
@@ -89,6 +91,11 @@ const Home: React.FC = () => {
     window.location.href = "/login";
   };
 
+  const showErrorPopup = (message: string) => {
+    setPopupError(message);
+    setTimeout(() => setPopupError(null), 5000); // Скрыть через 5 секунд
+  };
+  
   return (
     <div className="flex h-screen">
       {/* Левая панель */}
@@ -185,6 +192,17 @@ const Home: React.FC = () => {
           <p>Select a room or create one to get started.</p>
         </div>
       </div>
+      {popupError && (
+        <div className="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg">
+          {popupError}
+          <button
+            onClick={() => setPopupError(null)}
+            className="ml-4 text-white underline hover:no-underline"
+          >
+            Close
+          </button>
+        </div>
+      )}
     </div>
   );
 };
