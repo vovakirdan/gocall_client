@@ -12,7 +12,7 @@ const Home: React.FC = () => {
   const [newFriend, setNewFriend] = useState(""); // Новый друг
   const [error, setError] = useState(""); // Ошибки
   const { token, logout } = useAuth();
-  const [popupError, setPopupError] = useState<string | null>(null);
+  const [popupError, setPopupError] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const navigate = useNavigate();
 
   // Загрузка друзей и комнат
@@ -78,6 +78,7 @@ const Home: React.FC = () => {
       await addFriend(newFriend, token!);
       setFriends((prev) => [...prev, newFriend]);
       setNewFriend("");
+      showSuccessPopup(`Friend "${newFriend}" added successfully!`);
     } catch (err: any) {
       showErrorPopup(err.message || "An error occurred while adding a friend");
     }
@@ -94,19 +95,40 @@ const Home: React.FC = () => {
     window.location.href = "/login";
   };
 
-  const showErrorPopup = (message: string) => {
-    setPopupError(message);
-    setTimeout(() => setPopupError(null), 5000); // Скрыть через 5 секунд
-  };
+  const PopupMessage: React.FC<{ message: string; type: "success" | "error" }> = ({ message, type }) => (
+    <div
+      className={`fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg ${
+        type === "success" ? "bg-green-500" : "bg-red-500"
+      } text-white`}
+    >
+      {message}
+      <button
+        onClick={() => setPopupError(null)}
+        className="ml-4 text-white underline hover:no-underline"
+      >
+        Close
+      </button>
+    </div>
+  );  
 
-  const handleInviteFriend = async (roomID: string, friendUserID: string) => {
+  const showSuccessPopup = (message: string) => {
+    setPopupError({ message, type: "success" });
+    setTimeout(() => setPopupError(null), 5000);
+  };
+  
+  const showErrorPopup = (message: string) => {
+    setPopupError({ message, type: "error" });
+    setTimeout(() => setPopupError(null), 5000);
+  };   
+
+  const handleInviteFriend = async (roomID: string, friendUsername: string) => {
     try {
-      await inviteFriendToRoom(roomID, friendUserID, token!);
-      showErrorPopup(`Friend invited successfully!`);
+      await inviteFriendToRoom(roomID, friendUsername, token!);
+      showSuccessPopup(`Friend "${friendUsername}" invited successfully!`);
     } catch (err: any) {
       showErrorPopup(err.message || "Failed to invite friend");
     }
-  };
+  };  
   
   return (
     <div className="flex h-screen">
@@ -232,16 +254,9 @@ const Home: React.FC = () => {
         </div>
       </div>
       {popupError && (
-        <div className="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg">
-          {popupError}
-          <button
-            onClick={() => setPopupError(null)}
-            className="ml-4 text-white underline hover:no-underline"
-          >
-            Close
-          </button>
-        </div>
+        <PopupMessage message={popupError.message} type={popupError.type} />
       )}
+
     </div>
   );
 };

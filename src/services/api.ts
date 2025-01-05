@@ -166,7 +166,7 @@ export async function fetchInvitedRooms(token: string): Promise<Room[]> {
 
 export async function inviteFriendToRoom(
   roomID: string,
-  friendUserID: string,
+  username: string,
   token: string
 ): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/rooms/invite`, {
@@ -175,7 +175,7 @@ export async function inviteFriendToRoom(
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ roomID, userID: friendUserID }),
+    body: JSON.stringify({ roomID, username }),
   });
 
   if (!response.ok) {
