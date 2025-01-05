@@ -43,10 +43,11 @@ const Home: React.FC = () => {
     try {
       const room = await createRoom(newRoomName, token!);
       setRooms((prev) => [...prev, room]);
+      showSuccessPopup(`Room "${newRoomName}" created`)
       setNewRoomName("");
       setError("");
     } catch (err: any) {
-      setError(err.message || "An error occurred while creating a room");
+      showErrorPopup(err.message || "An error occurred while creating a room");
     }
   };  
 
@@ -57,9 +58,9 @@ const Home: React.FC = () => {
       navigate(`/room/${roomID}?name=${encodeURIComponent(roomName)}`);
       // The actual connection logic (offer/answer exchange, media, etc.)
       // will be handled inside `RoomPage.tsx`.
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to join room:", err);
-      setError("Failed to join room");
+      showErrorPopup(err.message || "Failed to join room");
     }
   };  
 
@@ -68,8 +69,9 @@ const Home: React.FC = () => {
     try {
       await deleteRoom(roomID, token!);
       setRooms((prev) => prev.filter((room) => room.RoomID !== roomID));
-    } catch (err) {
-      setError("Failed to delete room");
+      showSuccessPopup(`Room "${roomID}" deleted`)
+    } catch (err: any) {
+      showErrorPopup(err.message || "Failed to delete room");
     }
   };  
 
@@ -87,9 +89,15 @@ const Home: React.FC = () => {
   };  
 
   // Удаление друга
-  const handleRemoveFriend = (friendName: string) => {
-    setFriends((prev) => prev.filter((friend) => friend !== friendName));
-  };
+  const handleRemoveFriend = async (friendName: string) => {
+    try {
+      await removeFriend(friendName, token!); // Вызов API
+      setFriends((prev) => prev.filter((friend) => friend !== friendName)); // Обновление локального состояния
+      showSuccessPopup(`Friend "${friendName}" removed successfully!`);
+    } catch (err: any) {
+      showErrorPopup(err.message || "Failed to remove friend");
+    }
+  };  
 
   // Логаут
   const handleLogout = () => {
@@ -136,7 +144,7 @@ const Home: React.FC = () => {
           <div>{children}</div>
           <button
             onClick={onClose}
-            className="mt-4 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
+            className="mt-4 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-red-600"
           >
             Close
           </button>
@@ -157,28 +165,13 @@ const Home: React.FC = () => {
       await inviteFriendToRoom(selectedRoom, friendUsername, token!);
       showSuccessPopup(`Friend "${friendUsername}" invited successfully!`);
       setModalOpen(false);
+
+      const updatedInvitedRooms = await fetchInvitedRooms(token!);
+      setInvitedRooms(updatedInvitedRooms);
     } catch (err: any) {
       showErrorPopup(err.message || "Failed to invite friend");
     }
-  };  
-
-  const handleInviteFriend = async (roomID: string) => {
-    const friendToInvite = window.prompt(
-      "Select a friend to invite:",
-      friends.join(", ")
-    );
-  
-    if (friendToInvite && friends.includes(friendToInvite)) {
-      try {
-        await inviteFriendToRoom(roomID, friendToInvite, token!);
-        showSuccessPopup(`Friend "${friendToInvite}" invited successfully!`);
-      } catch (err: any) {
-        showErrorPopup(err.message || "Failed to invite friend");
-      }
-    } else {
-      showErrorPopup("Invalid friend selected.");
-    }
-  };  
+  }; 
   
   return (
     <div className="flex h-screen">
@@ -250,22 +243,37 @@ const Home: React.FC = () => {
               </li>
             ))}
             <Modal isOpen={isModalOpen} onClose={() => setModalOpen(false)}>
-              <h2 className="text-lg font-bold">Invite a Friend</h2>
+              <h2 className="text-lg font-bold text-gray-800">Invite a Friend</h2>
               <ul className="mt-4 space-y-2">
-                {friends.map((friend) => (
-                  <li
-                    key={friend}
-                    className="flex justify-between items-center bg-gray-200 px-4 py-2 rounded-lg"
-                  >
-                    <span>{friend}</span>
-                    <button
-                      onClick={() => handleInviteFromModal(friend)}
-                      className="text-blue-500 hover:text-blue-700"
+                {friends.map((friend) => {
+                  const alreadyInvited = invitedRooms.some((room) => room.RoomID === selectedRoom && room.Name === friend);
+
+                  return (
+                    <li
+                      key={friend}
+                      className={`flex justify-between items-center px-4 py-2 rounded-lg ${
+                        alreadyInvited ? "bg-gray-400" : "bg-blue-500"
+                      }`}
                     >
-                      Invite
-                    </button>
-                  </li>
-                ))}
+                      <span className="text-white">{friend}</span>
+                      {alreadyInvited ? (
+                        <button
+                          onClick={() => handleRemoveFriend(friend)}
+                          className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                        >
+                          Remove
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleInviteFromModal(friend)}
+                          className="px-3 py-1 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                        >
+                          Invite
+                        </button>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </Modal>
           </ul>

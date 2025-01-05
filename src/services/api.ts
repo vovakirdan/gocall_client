@@ -183,3 +183,19 @@ export async function inviteFriendToRoom(
     throw new Error(errorResponse.error || "Failed to invite friend to room");
   }
 }
+
+export async function fetchRoomMembers(roomID: string, token: string): Promise<string[]> {
+  const response = await fetch(`${API_BASE_URL}/rooms/${roomID}/members`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch room members");
+  }
+
+  const data = await response.json();
+  return data.members;
+}
