@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { InliveVideoObserver } from '../services/inlive-video-observer';
 
 interface ExtendedEncodingParameters extends RTCRtpEncodingParameters {
@@ -8,6 +8,7 @@ interface ExtendedEncodingParameters extends RTCRtpEncodingParameters {
 
 export default function RoomPage(): JSX.Element {
   const { roomID } = useParams();
+  const navigate = useNavigate();
     // The entire setup logic from the <script> goes into useEffect
     useEffect(() => {
         // ----------------------------------------------------------------
@@ -870,9 +871,19 @@ export default function RoomPage(): JSX.Element {
         const btnShareScreen = document.getElementById("btnShareScreen");
         if (btnShareScreen) btnShareScreen.onclick = shareScreen;
 
-        const btnStats = document.getElementById("btnStats");
-        if (btnStats) btnStats.onclick = toggleStats;
-
+        const chkStats = document.getElementById("chkStats") as HTMLInputElement | null;
+        if (chkStats) {
+          chkStats.checked = false;
+          chkStats.onchange = () => {
+            toggleStats();
+          };
+        }
+        const btnExit = document.getElementById("btnExit");
+        if (btnExit) {
+          btnExit.onclick = () => {
+            navigate("/home");
+          };
+        }
         const selectQuality = document.getElementById("selectQuality");
         if (selectQuality) selectQuality.onchange = switchQuality;
 
@@ -948,7 +959,7 @@ export default function RoomPage(): JSX.Element {
             width: 100%; height: 100%;
             color: white;
             background-color: rgba(0,0,0,0.2);
-            display: flex;
+            display: none;
             flex-direction: column;
             justify-content: center;
             align-items: center;
@@ -964,6 +975,20 @@ export default function RoomPage(): JSX.Element {
             min-height: 240px;
             object-fit: contain;
             box-sizing: border-box;
+          }
+          footer button {
+            background-color: #007BFF;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            margin: 0.2rem;
+          }
+
+          footer button:hover {
+            background-color: #0056b3;
           }
         `}</style>
   
@@ -1004,8 +1029,12 @@ export default function RoomPage(): JSX.Element {
             SVC
           </span>
           <button id="btnShareScreen">Share Screen</button>
-          <button id="btnStats">Toggle Stats</button>
+          <label>
+            <input type="checkbox" id="chkStats" />
+            Show Stats
+          </label>
           <span>
+          <button id="btnExit">Exit</button>
             <label>Quality</label>
             <select id="selectQuality">
               <option value="high" defaultValue={"high"}>
