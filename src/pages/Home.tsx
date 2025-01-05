@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { fetchRooms, createRoom, deleteRoom, Room, fetchInvitedRooms, inviteFriendToRoom } from "../services/api";
+import { 
+  fetchRooms,
+  createRoom,
+  deleteRoom,
+  Room,
+  fetchInvitedRooms,
+  inviteFriendToRoom,
+  fetchRoomMembers
+ } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { fetchFriends, addFriend, removeFriend } from "../services/friends-api";
 import { useNavigate } from "react-router-dom";
@@ -15,6 +23,7 @@ const Home: React.FC = () => {
   const [popupError, setPopupError] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [isModalOpen, setModalOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
+  const [roomMembers, setRoomMembers] = useState<string[]>([]);
   const navigate = useNavigate();
 
   // Загрузка друзей и комнат
@@ -153,10 +162,16 @@ const Home: React.FC = () => {
     );
   };  
 
-  const handleOpenModal = (roomID: string) => {
+  const handleOpenModal = async (roomID: string) => {
     setSelectedRoom(roomID);
+    try {
+      const members = await fetchRoomMembers(roomID, token!);
+      setRoomMembers(members || []);
+    } catch (err: any) {
+      showErrorPopup(err.message || "Failed to fetch room members");
+    }
     setModalOpen(true);
-  };
+  };  
   
   const handleInviteFromModal = async (friendUsername: string) => {
     if (!selectedRoom) return;
@@ -246,7 +261,7 @@ const Home: React.FC = () => {
               <h2 className="text-lg font-bold text-gray-800">Invite a Friend</h2>
               <ul className="mt-4 space-y-2">
                 {friends.map((friend) => {
-                  const alreadyInvited = invitedRooms.some((room) => room.RoomID === selectedRoom && room.Name === friend);
+                  const alreadyInvited = roomMembers ? roomMembers.includes(friend) : false;
 
                   return (
                     <li
