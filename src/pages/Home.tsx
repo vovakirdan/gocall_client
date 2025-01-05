@@ -181,8 +181,8 @@ const Home: React.FC = () => {
       showSuccessPopup(`Friend "${friendUsername}" invited successfully!`);
       setModalOpen(false);
 
-      const updatedInvitedRooms = await fetchInvitedRooms(token!);
-      setInvitedRooms(updatedInvitedRooms);
+      const updatedRoomMembers = await fetchRoomMembers(selectedRoom, token!);
+      setRoomMembers(updatedRoomMembers || []);
     } catch (err: any) {
       showErrorPopup(err.message || "Failed to invite friend");
     }
