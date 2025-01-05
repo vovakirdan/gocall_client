@@ -13,6 +13,8 @@ const Home: React.FC = () => {
   const [error, setError] = useState(""); // Ошибки
   const { token, logout } = useAuth();
   const [popupError, setPopupError] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [isModalOpen, setModalOpen] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
   const navigate = useNavigate();
 
   // Загрузка друзей и комнат
@@ -121,12 +123,60 @@ const Home: React.FC = () => {
     setTimeout(() => setPopupError(null), 5000);
   };   
 
-  const handleInviteFriend = async (roomID: string, friendUsername: string) => {
+  const Modal: React.FC<{ isOpen: boolean; onClose: () => void; children: React.ReactNode }> = ({
+    isOpen,
+    onClose,
+    children,
+  }) => {
+    if (!isOpen) return null;
+  
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+        <div className="bg-white p-4 rounded-lg shadow-lg w-96">
+          <div>{children}</div>
+          <button
+            onClick={onClose}
+            className="mt-4 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  };  
+
+  const handleOpenModal = (roomID: string) => {
+    setSelectedRoom(roomID);
+    setModalOpen(true);
+  };
+  
+  const handleInviteFromModal = async (friendUsername: string) => {
+    if (!selectedRoom) return;
+  
     try {
-      await inviteFriendToRoom(roomID, friendUsername, token!);
+      await inviteFriendToRoom(selectedRoom, friendUsername, token!);
       showSuccessPopup(`Friend "${friendUsername}" invited successfully!`);
+      setModalOpen(false);
     } catch (err: any) {
       showErrorPopup(err.message || "Failed to invite friend");
+    }
+  };  
+
+  const handleInviteFriend = async (roomID: string) => {
+    const friendToInvite = window.prompt(
+      "Select a friend to invite:",
+      friends.join(", ")
+    );
+  
+    if (friendToInvite && friends.includes(friendToInvite)) {
+      try {
+        await inviteFriendToRoom(roomID, friendToInvite, token!);
+        showSuccessPopup(`Friend "${friendToInvite}" invited successfully!`);
+      } catch (err: any) {
+        showErrorPopup(err.message || "Failed to invite friend");
+      }
+    } else {
+      showErrorPopup("Invalid friend selected.");
     }
   };  
   
@@ -171,7 +221,7 @@ const Home: React.FC = () => {
         <div className="p-4">
           <h2 className="text-lg font-bold">Rooms</h2>
           <ul className="mt-4 space-y-2">
-            {(rooms || []).map((room) => (
+          {rooms.map((room) => (
               <li
                 key={room.RoomID}
                 className="flex justify-between items-center bg-gray-700 px-4 py-2 rounded-lg"
@@ -191,9 +241,7 @@ const Home: React.FC = () => {
                     Delete
                   </button>
                   <button
-                    onClick={() =>
-                      handleInviteFriend(room.RoomID, prompt("Enter friend UserID") || "")
-                    }
+                    onClick={() => handleOpenModal(room.RoomID)}
                     className="text-green-400 hover:text-green-600"
                   >
                     Invite
@@ -201,6 +249,25 @@ const Home: React.FC = () => {
                 </div>
               </li>
             ))}
+            <Modal isOpen={isModalOpen} onClose={() => setModalOpen(false)}>
+              <h2 className="text-lg font-bold">Invite a Friend</h2>
+              <ul className="mt-4 space-y-2">
+                {friends.map((friend) => (
+                  <li
+                    key={friend}
+                    className="flex justify-between items-center bg-gray-200 px-4 py-2 rounded-lg"
+                  >
+                    <span>{friend}</span>
+                    <button
+                      onClick={() => handleInviteFromModal(friend)}
+                      className="text-blue-500 hover:text-blue-700"
+                    >
+                      Invite
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </Modal>
           </ul>
           <div className="mt-4 flex">
             <input
