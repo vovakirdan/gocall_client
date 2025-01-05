@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { fetchRooms, createRoom, deleteRoom, Room } from "../services/api";
+import { fetchRooms, createRoom, deleteRoom, Room, fetchInvitedRooms, inviteFriendToRoom } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { fetchFriends, addFriend, removeFriend } from "../services/friends-api";
 import { useNavigate } from "react-router-dom";
 
 const Home: React.FC = () => {
   const [friends, setFriends] = useState<string[]>([]);
-  const [rooms, setRooms] = useState<Room[]>([]); // Список комнат
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [invitedRooms, setInvitedRooms] = useState<Room[]>([]);
   const [newRoomName, setNewRoomName] = useState(""); // Новая комната
   const [newFriend, setNewFriend] = useState(""); // Новый друг
   const [error, setError] = useState(""); // Ошибки
@@ -22,9 +23,11 @@ const Home: React.FC = () => {
 
         const loadedRooms = await fetchRooms(token);
         const loadedFriends = await fetchFriends(token);
+        const invitedRooms = await fetchInvitedRooms(token);
 
         setRooms(loadedRooms);
         setFriends(loadedFriends);
+        setInvitedRooms(invitedRooms);
       } catch (err) {
         setError("Failed to load data");
       }
@@ -95,6 +98,15 @@ const Home: React.FC = () => {
     setPopupError(message);
     setTimeout(() => setPopupError(null), 5000); // Скрыть через 5 секунд
   };
+
+  const handleInviteFriend = async (roomID: string, friendUserID: string) => {
+    try {
+      await inviteFriendToRoom(roomID, friendUserID, token!);
+      showErrorPopup(`Friend invited successfully!`);
+    } catch (err: any) {
+      showErrorPopup(err.message || "Failed to invite friend");
+    }
+  };
   
   return (
     <div className="flex h-screen">
@@ -137,24 +149,32 @@ const Home: React.FC = () => {
         <div className="p-4">
           <h2 className="text-lg font-bold">Rooms</h2>
           <ul className="mt-4 space-y-2">
-            {rooms.map((room) => (
+            {(rooms || []).map((room) => (
               <li
                 key={room.RoomID}
                 className="flex justify-between items-center bg-gray-700 px-4 py-2 rounded-lg"
               >
-                <span className="truncate flex-1">{room.Name}</span>
+                <span>{room.Name}</span>
                 <div className="flex space-x-2">
                   <button
                     onClick={() => handleJoinRoom(room.RoomID, room.Name)}
-                    className="text-blue-400 hover:text-blue-600 whitespace-nowrap"
+                    className="text-blue-400 hover:text-blue-600"
                   >
                     Join
                   </button>
                   <button
                     onClick={() => handleDeleteRoom(room.RoomID)}
-                    className="text-red-400 hover:text-red-600 whitespace-nowrap"
+                    className="text-red-400 hover:text-red-600"
                   >
                     Delete
+                  </button>
+                  <button
+                    onClick={() =>
+                      handleInviteFriend(room.RoomID, prompt("Enter friend UserID") || "")
+                    }
+                    className="text-green-400 hover:text-green-600"
+                  >
+                    Invite
                   </button>
                 </div>
               </li>
@@ -175,6 +195,25 @@ const Home: React.FC = () => {
               Create
             </button>
           </div>
+        </div>
+        <div className="p-4">
+          <h2 className="text-lg font-bold">Invited Rooms</h2>
+          <ul className="mt-4 space-y-2">
+            {(invitedRooms || []).map((room) => (
+              <li
+                key={room.RoomID}
+                className="flex justify-between items-center bg-gray-700 px-4 py-2 rounded-lg"
+              >
+                <span>{room.Name}</span>
+                <button
+                  onClick={() => handleJoinRoom(room.RoomID, room.Name)}
+                  className="text-blue-400 hover:text-blue-600"
+                >
+                  Join
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
       {/* Основная панель */}

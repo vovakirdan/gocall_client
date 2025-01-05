@@ -146,3 +146,40 @@ export async function deleteRoom(roomID: string, token: string): Promise<void> {
     throw new Error(errorData.error || "Failed to delete room");
   }
 }
+
+export async function fetchInvitedRooms(token: string): Promise<Room[]> {
+  const response = await fetch(`${API_BASE_URL}/rooms/invited`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorResponse = await response.json();
+    throw new Error(errorResponse.error || "Failed to fetch invited rooms");
+  }
+
+  const data = await response.json();
+  return data.rooms;
+}
+
+export async function inviteFriendToRoom(
+  roomID: string,
+  friendUserID: string,
+  token: string
+): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/rooms/invite`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ roomID, userID: friendUserID }),
+  });
+
+  if (!response.ok) {
+    const errorResponse = await response.json();
+    throw new Error(errorResponse.error || "Failed to invite friend to room");
+  }
+}
