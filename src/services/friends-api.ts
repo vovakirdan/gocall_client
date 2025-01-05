@@ -32,17 +32,18 @@ export async function addFriend(friendUsername: string, token: string): Promise<
   }
 }
 
-export async function removeFriend(username: string, token: string): Promise<void> {
+export async function removeFriend(friendUsername: string, token: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/friends/remove`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ username }),
+    body: JSON.stringify({ friend_username: friendUsername }),
   });
 
   if (!response.ok) {
-    throw new Error("Failed to remove friend");
+    const errorResponse = await response.json();
+    throw new Error(errorResponse.error || "Failed to remove friend");
   }
 }
