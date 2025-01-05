@@ -108,10 +108,10 @@ const Home: React.FC = () => {
                 key={friend}
                 className="flex justify-between items-center bg-gray-700 px-4 py-2 rounded-lg"
               >
-                {friend}
+                <span className="truncate flex-1">{friend}</span>
                 <button
                   onClick={() => handleRemoveFriend(friend)}
-                  className="text-red-400 hover:text-red-600"
+                  className="ml-4 text-red-400 hover:text-red-600 whitespace-nowrap"
                 >
                   Remove
                 </button>
@@ -142,17 +142,17 @@ const Home: React.FC = () => {
                 key={room.RoomID}
                 className="flex justify-between items-center bg-gray-700 px-4 py-2 rounded-lg"
               >
-                <span>{room.Name}</span>
+                <span className="truncate flex-1">{room.Name}</span>
                 <div className="flex space-x-2">
                   <button
                     onClick={() => handleJoinRoom(room.RoomID, room.Name)}
-                    className="text-blue-400 hover:text-blue-600"
+                    className="text-blue-400 hover:text-blue-600 whitespace-nowrap"
                   >
                     Join
                   </button>
                   <button
                     onClick={() => handleDeleteRoom(room.RoomID)}
-                    className="text-red-400 hover:text-red-600"
+                    className="text-red-400 hover:text-red-600 whitespace-nowrap"
                   >
                     Delete
                   </button>
