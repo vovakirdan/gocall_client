@@ -1,3 +1,40 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 199 89% 57%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 87 71% 94%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 217 93% 91%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 199 89% 57%;
+    --radius: 0.75rem;
+  }
+}
+
+.glass {
+  @apply bg-white bg-opacity-70 backdrop-blur-lg border border-white border-opacity-20;
+}
+
+.card-gradient {
+  @apply bg-gradient-to-br from-card to-secondary/80;
+}
+
+.section-padding {
+  @apply px-4 py-6 md:px-6 md:py-8;
+}

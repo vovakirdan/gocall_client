@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import LoginSignupPage from "./pages/LoginSignupPage";
-import Home from "./pages/Home";
+// Заменяем Home на новый Index:
+import Index from "./pages/Index";
 import RoomPage from "./pages/RoomPage";
 import { checkAPIStatus } from "./services/api";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -41,7 +42,7 @@ function App() {
             path="/home"
             element={
               <ProtectedRoute>
-                <Home />
+                <Index />
               </ProtectedRoute>
             }
           />
