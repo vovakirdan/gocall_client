@@ -199,3 +199,16 @@ export async function fetchRoomMembers(roomID: string, token: string): Promise<s
   const data = await response.json();
   return data.members;
 }
+
+export async function updateRoom(roomID: string, name: string, token: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/rooms/${roomID}`, {
+    method: "PUT",
+    headers: headers(token),
+    body: JSON.stringify({ name, type: "public", password: "" }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to update room");
+  }
+}

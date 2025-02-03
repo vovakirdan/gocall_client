@@ -32,7 +32,7 @@
 }
 
 .card-gradient {
-  @apply bg-gradient-to-br from-card to-secondary/80;
+  @apply bg-gradient-to-br from-white to-green-200;
 }
 
 .section-padding {
