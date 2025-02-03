@@ -4,6 +4,7 @@ import LoginSignupPage from "./pages/LoginSignupPage";
 // Заменяем Home на новый Index:
 import Index from "./pages/Index";
 import RoomPage from "./pages/RoomPage";
+import FriendsPage from "./pages/FriendsPage";
 import { checkAPIStatus } from "./services/api";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
@@ -43,6 +44,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Index />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/friends"
+            element={
+              <ProtectedRoute>
+                <FriendsPage />
               </ProtectedRoute>
             }
           />
