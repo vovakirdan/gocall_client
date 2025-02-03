@@ -11,7 +11,7 @@
     "tauri:dev": "PORT=1420 tauri dev"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2",
+    "@tauri-apps/api": "^2.2.0",
     "@tauri-apps/plugin-fs": "^2.2.0",
     "@tauri-apps/plugin-opener": "^2",
     "crypto-js": "^4.2.0",
