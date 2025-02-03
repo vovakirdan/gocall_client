@@ -7,6 +7,7 @@ import RoomPage from "./pages/RoomPage";
 import FriendsPage from "./pages/FriendsPage";
 import { checkAPIStatus } from "./services/api";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Layout from "./components/Layout";
 import { AuthProvider } from "./context/AuthContext";
 import { isDesktop } from "./utils/platform";
 
@@ -36,25 +37,15 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
-          <Route path="/" element={<Navigate to="/home" />} />
           <Route path="/login" element={<LoginSignupPage />} />
-          <Route path="/room/:roomID" element={<RoomPage />} />
-          <Route
-            path="/home"
-            element={
-              <ProtectedRoute>
-                <Index />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/friends"
-            element={
-              <ProtectedRoute>
-                <FriendsPage />
-              </ProtectedRoute>
-            }
-          />
+          {/* Защищённые маршруты внутри общего Layout */}
+          <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+            <Route path="/home" element={<Index />} />
+            <Route path="/friends" element={<FriendsPage />} />
+            <Route path="/room/:roomID" element={<RoomPage />} />
+          </Route>
+          {/* Перенаправление с корня */}
+          <Route path="/" element={<Navigate to="/home" />} />
         </Routes>
       </Router>
     </AuthProvider>

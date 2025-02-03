@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import AppSidebar from "../components/AppSidebar";
 import Button from "../components/Button";
 import { Plus, Video, MoreVertical } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -129,9 +128,6 @@ const Index: React.FC = () => {
 
   return (
     <div className="min-h-screen flex">
-      {/* Левая панель */}
-      <AppSidebar />
-
       {/* Основной контент */}
       <main className="flex-1 overflow-auto p-6">
         <div className="flex items-center justify-between mb-8">
