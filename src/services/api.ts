@@ -12,6 +12,7 @@ export interface Room {
   Name: string;
   Type: string;
   CreatedAt: string;
+  isOwner?: boolean;
 }
 
 export async function checkAPIStatus(): Promise<boolean> {
@@ -106,7 +107,7 @@ export async function fetchRooms(token: string): Promise<Room[]> {
     return data.rooms as Room[];
   }  
 
-  export async function createRoom(
+export async function createRoom(
     name: string,
     // type: string,
     token: string,

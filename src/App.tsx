@@ -5,6 +5,7 @@ import LoginSignupPage from "./pages/LoginSignupPage";
 import Index from "./pages/Index";
 import RoomPage from "./pages/RoomPage";
 import FriendsPage from "./pages/FriendsPage";
+import RoomsPage from "./pages/RoomsPage";
 import { checkAPIStatus } from "./services/api";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
@@ -42,6 +43,7 @@ function App() {
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route path="/home" element={<Index />} />
             <Route path="/friends" element={<FriendsPage />} />
+            <Route path="/rooms" element={<RoomsPage />} />
             <Route path="/room/:roomID" element={<RoomPage />} />
           </Route>
           {/* Перенаправление с корня */}
