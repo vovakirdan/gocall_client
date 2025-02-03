@@ -15,9 +15,7 @@
         "title": "gocall_client",
         "width": 1024,
         "height": 768,
-        "resizable": true,
-        "minWidth": 800,
-        "minHeight": 600
+        "center": true
       }
     ],
     "security": {
