@@ -1,5 +1,5 @@
 import { API_BASE_URL, headers } from "./api";
-import { FriendRequest, Friend } from "../types";
+import { FriendRequest, Friend, User } from "../types";
 
 // Функция для получения списка заявок
 export async function fetchFriendRequests(token: string): Promise<FriendRequest[]> {
@@ -11,7 +11,7 @@ export async function fetchFriendRequests(token: string): Promise<FriendRequest[
     throw new Error("Failed to fetch friend requests");
   }
   const data = await response.json();
-  return data.requests || []; // предполагается, что сервер вернёт { requests: [...] }
+  return Array.isArray(data.requests) ? data.requests : []; // предполагается, что сервер вернёт { requests: [...] }
 }
 
 // Функция для принятия заявки
@@ -63,7 +63,7 @@ export async function fetchFriends(token: string): Promise<Friend[]> {
     throw new Error("Failed to fetch friends");
   }
   const data = await response.json();
-  return data.friends  || []; // предполагается, что сервер вернёт { friends: [...] }
+  return Array.isArray(data.friends) ? data.friends : []; // предполагается, что сервер вернёт { friends: [...] }
 }
 
 // Функция для добавления друга
@@ -90,4 +90,17 @@ export async function removeFriend(friendUsername: string, token: string): Promi
     const errorData = await response.json();
     throw new Error(errorData.error || "Failed to remove friend");
   }
+}
+
+// Функция для поиска пользователей
+export async function searchUsers(query: string, token: string): Promise<User[]> {
+  const response = await fetch(`${API_BASE_URL}/friends/search?q=${encodeURIComponent(query)}`, {
+    method: "GET",
+    headers: headers(token),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to search users");
+  }
+  const data = await response.json();
+  return Array.isArray(data.users) ? data.users : [];
 }
