@@ -7,16 +7,15 @@ import {
   declineFriendRequest,
   requestFriend,
   fetchFriends,
-  addFriend,
   removeFriend,
 } from "../services/friends-api";
-import { FriendRequest } from "../types";
+import { FriendRequest, Friend } from "../types";
 
 const FriendsPage: React.FC = () => {
   const { token } = useAuth();
-  const [friends, setFriends] = useState<string[]>([]);
+  // Теперь друзья — массив объектов типа Friend
+  const [friends, setFriends] = useState<Friend[]>([]);
   const [searchQuery, setSearchQuery] = useState(""); // Заглушка поиска
-  const [newFriend, setNewFriend] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
@@ -50,28 +49,26 @@ const FriendsPage: React.FC = () => {
     loadFriendRequests();
   }, [token]);
 
-  // Обработчик добавления друга напрямую
-  const handleAddFriend = async () => {
-    if (!newFriend.trim() || !token) return;
+  // Обработчик отправки заявки другу
+  const handleSendFriendRequest = async () => {
+    if (!requestUsername.trim() || !token) return;
     try {
-      await addFriend(newFriend, token);
-      setFriends((prev) => [...prev, newFriend]);
-      setNewFriend("");
-      setSuccess(`Friend "${newFriend}" added successfully!`);
-      setError("");
+      await requestFriend(requestUsername, token);
+      setSuccess(`Friend request sent to ${requestUsername}`);
+      setRequestUsername("");
       setTimeout(() => setSuccess(""), 3000);
     } catch (err: any) {
-      setError(err.message || "Failed to add friend");
+      setError(err.message || "Failed to send friend request");
     }
   };
 
   // Обработчик удаления друга
-  const handleRemoveFriend = async (friendName: string) => {
+  const handleRemoveFriend = async (friendID: string) => {
     if (!token) return;
     try {
-      await removeFriend(friendName, token);
-      setFriends((prev) => prev.filter((friend) => friend !== friendName));
-      setSuccess(`Friend "${friendName}" removed successfully!`);
+      await removeFriend(friendID, token);
+      setFriends((prev) => prev.filter((friend) => friend.friendID !== friendID));
+      setSuccess(`Friend "${friendID}" removed successfully!`);
       setError("");
       setTimeout(() => setSuccess(""), 3000);
     } catch (err: any) {
@@ -79,12 +76,23 @@ const FriendsPage: React.FC = () => {
     }
   };
 
-  // Обработчик принятия заявки в друзья
-  const handleAcceptFriendRequest = async (requestId: number) => {
+  // Обработчик принятия заявки в друзья.
+  // После принятия заявки, добавляем нового друга в список (используем fromUserID)
+  const handleAcceptFriendRequest = async (requestId: number, fromUserID: string) => {
     if (!token) return;
     try {
       await acceptFriendRequest(requestId, token);
       setFriendRequests((prev) => prev.filter((req) => req.id !== requestId));
+      // Добавляем нового друга, если его ещё нет в списке
+      setFriends((prev) => {
+        if (!prev.some((friend) => friend.friendID === fromUserID)) {
+          return [
+            ...prev,
+            { id: requestId, userID: "", friendID: fromUserID, createdAt: new Date().toISOString() },
+          ];
+        }
+        return prev;
+      });
     } catch (err: any) {
       console.error("Failed to accept friend request:", err);
     }
@@ -101,19 +109,6 @@ const FriendsPage: React.FC = () => {
     }
   };
 
-  // Обработчик отправки заявки другу
-  const handleSendFriendRequest = async () => {
-    if (!requestUsername.trim() || !token) return;
-    try {
-      await requestFriend(requestUsername, token);
-      setSuccess(`Friend request sent to ${requestUsername}`);
-      setRequestUsername("");
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err: any) {
-      setError(err.message || "Failed to send friend request");
-    }
-  };
-
   return (
     <div className="min-h-screen flex flex-col p-6">
       <h1 className="text-2xl font-bold mb-4">Друзья</h1>
@@ -127,20 +122,6 @@ const FriendsPage: React.FC = () => {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="border p-2 rounded w-full"
         />
-      </div>
-
-      {/* Окно добавления нового друга напрямую */}
-      <div className="mb-4 flex gap-2">
-        <input
-          type="text"
-          placeholder="Добавить друга"
-          value={newFriend}
-          onChange={(e) => setNewFriend(e.target.value)}
-          className="border p-2 rounded flex-1"
-        />
-        <Button variant="primary" onClick={handleAddFriend}>
-          Добавить
-        </Button>
       </div>
 
       {/* Окно для отправки заявки другу */}
@@ -166,13 +147,24 @@ const FriendsPage: React.FC = () => {
           <h2 className="text-xl font-semibold mb-4">Заявки в друзья</h2>
           <div className="grid gap-2">
             {friendRequests.map((req) => (
-              <div key={req.id} className="flex items-center justify-between p-3 rounded-lg bg-white shadow-sm">
+              <div
+                key={req.id}
+                className="flex items-center justify-between p-3 rounded-lg bg-white shadow-sm"
+              >
                 <span>Заявка от: {req.fromUserID}</span>
                 <div className="flex gap-2">
-                  <Button variant="primary" size="sm" onClick={() => handleAcceptFriendRequest(req.id)}>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => handleAcceptFriendRequest(req.id, req.fromUserID)}
+                  >
                     Принять
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDeclineFriendRequest(req.id)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeclineFriendRequest(req.id)}
+                  >
                     Отклонить
                   </Button>
                 </div>
@@ -185,12 +177,15 @@ const FriendsPage: React.FC = () => {
       {/* Секция списка друзей */}
       <div className="grid gap-4">
         {friends.length === 0 ? (
-          <p className="text-gray-500">Нет друзей. Добавьте новых друзей!</p>
+          <p className="text-gray-500">Нет друзей. Отправьте заявку, чтобы добавить друзей!</p>
         ) : (
           friends.map((friend) => (
-            <div key={friend} className="flex justify-between items-center p-4 border rounded-lg shadow-sm bg-white">
-              <span>{friend}</span>
-              <Button variant="ghost" size="sm" onClick={() => handleRemoveFriend(friend)}>
+            <div
+              key={friend.id}
+              className="flex justify-between items-center p-4 border rounded-lg shadow-sm bg-white"
+            >
+              <span>{friend.friendID}</span>
+              <Button variant="ghost" size="sm" onClick={() => handleRemoveFriend(friend.friendID)}>
                 Удалить
               </Button>
             </div>
