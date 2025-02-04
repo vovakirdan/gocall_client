@@ -75,7 +75,7 @@ const FriendsPage: React.FC = () => {
     try {
       const results = await searchUsers(searchQuery, token);
       const filtered = results.filter(
-        (user) => !friends.some((friend) => friend.friend_id === user.user_id)
+        (user) => !friends.some((friend) => friend.username === user.username)
       );
       setSearchResults(filtered);
     } catch (err: any) {
@@ -124,7 +124,7 @@ const FriendsPage: React.FC = () => {
     if (!token) return;
     try {
       await removeFriend(friendID, token);
-      setFriends((prev) => prev.filter((friend) => friend.friend_id !== friendID));
+      setFriends((prev) => prev.filter((friend) => friend.user_id !== friendID));
       setSuccess(`Friend "${friendID}" removed successfully!`);
       setTimeout(() => setSuccess(""), 3000);
     } catch (err: any) {
@@ -141,10 +141,10 @@ const FriendsPage: React.FC = () => {
       setFriendRequests((prev) => prev.filter((req) => req.id !== requestId));
       // Добавляем нового друга, если его ещё нет
       setFriends((prev) => {
-        if (!prev.some((friend) => friend.friend_id === fromUserID)) {
+        if (!prev.some((friend) => friend.user_id === fromUserID)) {
           return [
             ...prev,
-            { id: requestId, user_id: "", friend_id: fromUserID, created_at: new Date().toISOString() },
+            { id: requestId, user_id: fromUserID, username: prev.find((user) => user.user_id === fromUserID)?.username || "", is_online: false },
           ];
         }
         return prev;
@@ -241,8 +241,8 @@ const FriendsPage: React.FC = () => {
               key={friend.id}
               className="flex justify-between items-center p-4 border rounded-lg shadow-sm bg-white"
             >
-              <span>{friend.friend_id}</span>
-              <Button variant="ghost" size="sm" onClick={() => handleRemoveFriend(friend.friend_id)}>
+              <span>{friend.username}</span>
+              <Button variant="ghost" size="sm" onClick={() => handleRemoveFriend(friend.user_id)}>
                 Удалить
               </Button>
             </div>

@@ -223,7 +223,7 @@ const Index: React.FC = () => {
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-green-500" />
-                    <span>{friend.friend_id}</span>
+                    <span>{friend.username}</span>
                   </div>
                   <Button variant="ghost" size="sm">
                     <Video className="h-4 w-4 mr-2" />
@@ -255,11 +255,11 @@ const Index: React.FC = () => {
                     key={friend.id}
                     className="flex justify-between items-center p-2 hover:bg-gray-100 rounded"
                   >
-                    <span>{friend.friend_id}</span>
+                    <span>{friend.username}</span>
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={() => handleConfirmInvite(friend.friend_id)}
+                      onClick={() => handleConfirmInvite(friend.username)}
                     >
                       Пригласить
                     </Button>

@@ -35,9 +35,9 @@ export interface RoomMember {
 
 export interface Friend {
   id: number;
+  username: string;
+  is_online: boolean;
   user_id: string;
-  friend_id: string;
-  created_at: string;
 }
 
 export interface FriendRequest {
