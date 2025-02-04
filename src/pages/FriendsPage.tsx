@@ -25,42 +25,45 @@ const FriendsPage: React.FC = () => {
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
   const [friendRequestUsernames, setFriendRequestUsernames] = useState<{ [key: number]: string }>({});
 
-  // Загрузка списка друзей
   useEffect(() => {
-    const loadFriends = async () => {
-      if (!token) return;
+    if (!token) return;
+  
+    const loadData = async () => {
       try {
-        const friendsData = await fetchFriends(token);
+        const [friendsData, requests] = await Promise.all([
+          fetchFriends(token),
+          fetchFriendRequests(token),
+        ]);
         setFriends(friendsData);
-      } catch (err: any) {
-        setError(err.message || "Failed to load friends");
-      }
-    };
-    loadFriends();
-  }, [token]);
-
-  // Загрузка входящих заявок
-  useEffect(() => {
-    const loadFriendRequests = async () => {
-      if (!token) return;
-      try {
-        const requests = await fetchFriendRequests(token);
         setFriendRequests(requests);
-        const usernames: { [key: number]: string } = {};
-        await Promise.all(
-          requests.map(async (req) => {
-            const userInfo = await getUserInfo(token, req.from_user_id);
-            usernames[req.id] = userInfo.username;
-          })
-        );
-        setFriendRequestUsernames(usernames);
       } catch (err: any) {
-        console.error("Failed to load friend requests:", err);
+        setError(err.message || "Failed to load data");
       }
     };
-    loadFriendRequests();
-  }, [token]);
-
+  
+    loadData();
+  }, [token]); // Загружаем список друзей и заявки 1 раз при изменении токена
+  
+  useEffect(() => {
+    if (!token || friendRequests.length === 0) return;
+  
+    const loadUsernames = async () => {
+      const usernames: { [key: number]: string } = {};
+      for (const req of friendRequests) {
+        try {
+          const userInfo = await getUserInfo(token, req.from_user_id);
+          usernames[req.id] = userInfo.username;
+        } catch (err) {
+          console.warn(`Failed to fetch user info for ${req.from_user_id}:`, err);
+          usernames[req.id] = "Unknown User"; 
+        }
+      }
+      setFriendRequestUsernames(usernames);
+    };
+  
+    loadUsernames();
+  }, [token, friendRequests]); // Загружаем юзернеймы после обновления friendRequests
+  
   // Функция поиска
   const fetchSearchResults = useCallback(async () => {
     if (!token) return;
