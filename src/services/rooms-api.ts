@@ -1,4 +1,4 @@
-import { RoomInvite } from "../types";
+import { RoomInvite, Room } from "../types";
 import { API_BASE_URL, headers } from "./api";
 
 // Функция для получения списка приглашений в комнаты (GET /api/rooms/invites)
@@ -11,7 +11,7 @@ export async function fetchRoomInvites(token: string): Promise<RoomInvite[]> {
     throw new Error("Failed to fetch room invites");
   }
   const data = await response.json();
-  return data.invites; // сервер должен вернуть { invites: [...] }
+  return Array.isArray(data.invites) ? data.invites : []; // сервер должен вернуть { invites: [...] }
 }
 
 // Функция для принятия приглашения в комнату (POST /api/rooms/invite/accept)
@@ -41,7 +41,7 @@ export async function declineRoomInvite(inviteId: number, token: string): Promis
 }
 
 /** Получаем комнаты, где вы являетесь создателем (GET /rooms/mine) */
-export async function fetchMyRooms(token: string): Promise<import("../types").Room[]> {
+export async function fetchMyRooms(token: string): Promise<Room[]> {
   const response = await fetch(`${API_BASE_URL}/rooms/mine`, {
     method: "GET",
     headers: headers(token),
@@ -50,11 +50,11 @@ export async function fetchMyRooms(token: string): Promise<import("../types").Ro
     throw new Error("Failed to fetch rooms");
   }
   const data = await response.json();
-  return data.rooms as import("../types").Room[];
+  return Array.isArray(data.rooms) ? data.rooms : [];
 }
 
 /** Создание комнаты (POST /rooms/create) */
-export async function createRoom(name: string, token: string): Promise<import("../types").Room> {
+export async function createRoom(name: string, token: string): Promise<Room> {
   const type = "public"; // можно расширить по необходимости
   const password = "";
   const response = await fetch(`${API_BASE_URL}/rooms/create`, {
@@ -89,7 +89,7 @@ export async function deleteRoom(roomID: string, token: string): Promise<void> {
 }
 
 /** Получаем приглашённые комнаты (GET /rooms/invites) */
-export async function fetchInvitedRooms(token: string): Promise<import("../types").Room[]> {
+export async function fetchInvitedRooms(token: string): Promise<Room[]> {
   const response = await fetch(`${API_BASE_URL}/rooms/invites`, {
     method: "GET",
     headers: headers(token),
@@ -99,7 +99,7 @@ export async function fetchInvitedRooms(token: string): Promise<import("../types
     throw new Error(errorResponse.error || "Failed to fetch invited rooms");
   }
   const data = await response.json();
-  return data.invites as import("../types").Room[];
+  return Array.isArray(data.invites) ? data.invites : [];
 }
 
 /** Приглашение друга в комнату (POST /rooms/invite) */
