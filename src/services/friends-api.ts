@@ -1,5 +1,5 @@
 import { API_BASE_URL, headers } from "./api";
-import { FriendRequest } from "../types";
+import { FriendRequest, Friend } from "../types";
 
 // Функция для получения списка заявок
 export async function fetchFriendRequests(token: string): Promise<FriendRequest[]> {
@@ -54,7 +54,7 @@ export async function requestFriend(friendUsername: string, token: string): Prom
 }
 
 // Функция для получения списка друзей
-export async function fetchFriends(token: string): Promise<string[]> {
+export async function fetchFriends(token: string): Promise<Friend[]> {
   const response = await fetch(`${API_BASE_URL}/friends`, {
     method: "GET",
     headers: headers(token),
@@ -63,7 +63,7 @@ export async function fetchFriends(token: string): Promise<string[]> {
     throw new Error("Failed to fetch friends");
   }
   const data = await response.json();
-  return data.friends; // предполагается, что сервер вернёт { friends: [...] }
+  return data.friends  || []; // предполагается, что сервер вернёт { friends: [...] }
 }
 
 // Функция для добавления друга

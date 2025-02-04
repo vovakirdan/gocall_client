@@ -10,18 +10,18 @@ import {
   inviteFriendToRoom,
 } from "../services/rooms-api";
 import { fetchFriends } from "../services/friends-api";
-import { Room } from "../types";
+import { Room, Friend } from "../types";
 
 const Index: React.FC = () => {
   const { token } = useAuth();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [invitedRooms, setInvitedRooms] = useState<Room[]>([]);
-  const [friends, setFriends] = useState<string[]>([]);
+  const [friends, setFriends] = useState<Friend[]>([]);
   const [activeRoomMenu, setActiveRoomMenu] = useState<string | null>(null);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [inviteModalRoom, setInviteModalRoom] = useState<string | null>(null);
 
-  // Загрузка данных
+  // Загружаем данные: собственные комнаты, приглашённые комнаты и друзей
   useEffect(() => {
     const loadData = async () => {
       if (!token) return;
@@ -30,6 +30,7 @@ const Index: React.FC = () => {
         const invited = await fetchInvitedRooms(token);
         const fetchedFriends = await fetchFriends(token);
 
+        // Помечаем, какие комнаты созданы пользователем
         const markedOwnRooms = ownRooms.map((room) => ({ ...room, isOwner: true }));
         const markedInvitedRooms = invited.map((room) => ({ ...room, isOwner: false }));
 
@@ -45,7 +46,7 @@ const Index: React.FC = () => {
 
   const allRooms: Room[] = [...rooms, ...invitedRooms];
 
-  // Обработка удаления комнаты
+  // Удаление комнаты
   const handleDeleteRoom = async (roomId: string) => {
     if (!token) return;
     try {
@@ -58,7 +59,7 @@ const Index: React.FC = () => {
     }
   };
 
-  // Обработка редактирования комнаты (только название)
+  // Редактирование комнаты (только название)
   const handleEditRoom = async (roomId: string) => {
     if (!token) return;
     const newName = window.prompt("Введите новое название комнаты:");
@@ -77,26 +78,26 @@ const Index: React.FC = () => {
     }
   };
 
-  // Открытие модального окна для приглашения друга
+  // Открытие модального окна для приглашения друга в комнату
   const handleInviteFriend = (roomId: string) => {
     setInviteModalRoom(roomId);
     setInviteModalOpen(true);
     setActiveRoomMenu(null);
   };
 
-  // Подтверждение приглашения друга
-  const handleConfirmInvite = async (friend: string) => {
+  // Подтверждение приглашения (в модальном окне)
+  const handleConfirmInvite = async (friendName: string) => {
     if (!token || !inviteModalRoom) return;
     try {
-      await inviteFriendToRoom(inviteModalRoom, friend, token);
-      alert(`Друг ${friend} приглашён в комнату!`);
+      await inviteFriendToRoom(inviteModalRoom, friendName, token);
+      alert(`Друг ${friendName} приглашён в комнату!`);
       setInviteModalOpen(false);
     } catch (error: any) {
       console.error("Failed to invite friend:", error.message);
     }
   };
 
-  // Обработка присоединения к комнате
+  // Обработка присоединения к комнате (здесь можно расширить логику навигации)
   const handleJoinRoom = (roomId: string) => {
     alert(`Присоединиться к комнате ${roomId}`);
   };
@@ -211,18 +212,18 @@ const Index: React.FC = () => {
         {/* Секция друзей */}
         <section>
           <h2 className="text-xl font-semibold mb-4">Друзья</h2>
-          {friends.length === 0 ? (
+          {friends && friends.length === 0 ? (
             <p className="text-gray-500">Нет друзей. Добавьте новых друзей!</p>
           ) : (
             <div className="grid gap-2">
               {friends.map((friend) => (
                 <div
-                  key={friend}
+                  key={friend.id}
                   className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-green-500" />
-                    <span>{friend}</span>
+                    <span>{friend.friendID}</span>
                   </div>
                   <Button variant="ghost" size="sm">
                     <Video className="h-4 w-4 mr-2" />
@@ -251,14 +252,14 @@ const Index: React.FC = () => {
               <ul>
                 {friends.map((friend) => (
                   <li
-                    key={friend}
+                    key={friend.id}
                     className="flex justify-between items-center p-2 hover:bg-gray-100 rounded"
                   >
-                    <span>{friend}</span>
+                    <span>{friend.friendID}</span>
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={() => handleConfirmInvite(friend)}
+                      onClick={() => handleConfirmInvite(friend.friendID)}
                     >
                       Пригласить
                     </Button>
