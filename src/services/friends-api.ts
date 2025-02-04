@@ -1,49 +1,93 @@
-import { API_BASE_URL } from "./api";
+import { API_BASE_URL, headers } from "./api";
+import { FriendRequest } from "../types";
 
+// Функция для получения списка заявок
+export async function fetchFriendRequests(token: string): Promise<FriendRequest[]> {
+  const response = await fetch(`${API_BASE_URL}/friends/requests`, {
+    method: "GET",
+    headers: headers(token),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to fetch friend requests");
+  }
+  const data = await response.json();
+  return data.requests; // предполагается, что сервер вернёт { requests: [...] }
+}
+
+// Функция для принятия заявки
+export async function acceptFriendRequest(requestId: number, token: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/friends/accept`, {
+    method: "POST",
+    headers: headers(token),
+    body: JSON.stringify({ request_id: requestId }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to accept friend request");
+  }
+}
+
+// Функция для отклонения заявки
+export async function declineFriendRequest(requestId: number, token: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/friends/decline`, {
+    method: "POST",
+    headers: headers(token),
+    body: JSON.stringify({ request_id: requestId }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to decline friend request");
+  }
+}
+
+// Функция для отправки заявки на дружбу
+export async function requestFriend(friendUsername: string, token: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/friends/request`, {
+    method: "POST",
+    headers: headers(token),
+    body: JSON.stringify({ to_username: friendUsername }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to send friend request");
+  }
+}
+
+// Функция для получения списка друзей
 export async function fetchFriends(token: string): Promise<string[]> {
   const response = await fetch(`${API_BASE_URL}/friends`, {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: headers(token),
   });
-
   if (!response.ok) {
     throw new Error("Failed to fetch friends");
   }
-
   const data = await response.json();
-  return data.friends.map((friend: { Username: string }) => friend.Username);
+  return data.friends; // предполагается, что сервер вернёт { friends: [...] }
 }
 
+// Функция для добавления друга
 export async function addFriend(friendUsername: string, token: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/friends/add`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    headers: headers(token),
     body: JSON.stringify({ friend_username: friendUsername }),
   });
-
   if (!response.ok) {
-    const errorResponse = await response.json();
-    throw new Error(errorResponse.error || "Failed to add friend");
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to add friend");
   }
 }
 
+// Функция для удаления друга
 export async function removeFriend(friendUsername: string, token: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/friends/remove`, {
-    method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    method: "POST",
+    headers: headers(token),
     body: JSON.stringify({ friend_username: friendUsername }),
   });
-
   if (!response.ok) {
-    const errorResponse = await response.json();
-    throw new Error(errorResponse.error || "Failed to remove friend");
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to remove friend");
   }
 }

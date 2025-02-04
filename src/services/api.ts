@@ -1,19 +1,10 @@
 export const API_BASE_URL = "http://localhost:8080/api";
 
-const headers = (token?: string) => ({
+export const headers = (token?: string) => ({
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     "X-Client-Type": "desktop",
   });
-
-export interface Room {
-  RoomID: string;
-  UserID: number;
-  Name: string;
-  Type: string;
-  CreatedAt: string;
-  isOwner?: boolean;
-}
 
 export async function checkAPIStatus(): Promise<boolean> {
   try {
@@ -91,125 +82,4 @@ export async function getUserID(token: string): Promise<string> {
 
   const data = await response.json();
   return data.userUUID;
-}
-
-export async function fetchRooms(token: string): Promise<Room[]> {
-    const response = await fetch(`${API_BASE_URL}/rooms`, {
-      method: "GET",
-      headers: headers(token),
-    });
-  
-    if (!response.ok) {
-      throw new Error("Failed to fetch rooms");
-    }
-  
-    const data = await response.json();
-    return data.rooms as Room[];
-  }  
-
-export async function createRoom(
-    name: string,
-    // type: string,
-    token: string,
-    // password?: string
-  ): Promise<Room> {
-    const type = "public";
-    const password = "";
-    const response = await fetch(`${API_BASE_URL}/rooms/create`, {
-      method: "POST",
-      headers: headers(token),
-      body: JSON.stringify({ name, type, password: password || "" }),
-    });
-  
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Failed to create room");
-    }
-  
-    const data = await response.json();
-    return {
-      RoomID: data.roomID,
-      Name: data.name,
-      Type: data.type,
-      UserID: data.userID,
-      CreatedAt: new Date().toISOString(),
-    };
-}
-
-export async function deleteRoom(roomID: string, token: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/rooms/${roomID}`, {
-    method: "DELETE",
-    headers: headers(token),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Failed to delete room");
-  }
-}
-
-export async function fetchInvitedRooms(token: string): Promise<Room[]> {
-  const response = await fetch(`${API_BASE_URL}/rooms/invited`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const errorResponse = await response.json();
-    throw new Error(errorResponse.error || "Failed to fetch invited rooms");
-  }
-
-  const data = await response.json();
-  return data.rooms;
-}
-
-export async function inviteFriendToRoom(
-  roomID: string,
-  username: string,
-  token: string
-): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/rooms/invite`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ roomID, username }),
-  });
-
-  if (!response.ok) {
-    const errorResponse = await response.json();
-    throw new Error(errorResponse.error || "Failed to invite friend to room");
-  }
-}
-
-export async function fetchRoomMembers(roomID: string, token: string): Promise<string[]> {
-  const response = await fetch(`${API_BASE_URL}/rooms/${roomID}/members`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch room members");
-  }
-
-  const data = await response.json();
-  return data.members;
-}
-
-export async function updateRoom(roomID: string, name: string, token: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/rooms/${roomID}`, {
-    method: "PUT",
-    headers: headers(token),
-    body: JSON.stringify({ name, type: "public", password: "" }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Failed to update room");
-  }
 }

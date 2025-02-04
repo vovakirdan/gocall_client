@@ -3,22 +3,14 @@ import Button from "../components/Button";
 import { Plus, Video, MoreVertical } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import {
-  fetchRooms,
+  fetchMyRooms,
   fetchInvitedRooms,
   deleteRoom,
   updateRoom,
   inviteFriendToRoom,
-} from "../services/api";
+} from "../services/rooms-api";
 import { fetchFriends } from "../services/friends-api";
-
-interface Room {
-  RoomID: string;
-  UserID: number;
-  Name: string;
-  Type: string;
-  CreatedAt: string;
-  isOwner?: boolean;
-}
+import { Room } from "../types";
 
 const Index: React.FC = () => {
   const { token } = useAuth();
@@ -34,7 +26,7 @@ const Index: React.FC = () => {
     const loadData = async () => {
       if (!token) return;
       try {
-        const ownRooms = await fetchRooms(token);
+        const ownRooms = await fetchMyRooms(token);
         const invited = await fetchInvitedRooms(token);
         const fetchedFriends = await fetchFriends(token);
 
