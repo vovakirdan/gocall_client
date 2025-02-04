@@ -1,3 +1,5 @@
+import { UserInfo } from "../types";
+
 export const API_BASE_URL = "http://localhost:8080/api";
 
 export const headers = (token?: string) => ({
@@ -83,3 +85,20 @@ export async function getUserID(token: string): Promise<string> {
   const data = await response.json();
   return data.userUUID;
 }
+
+// получить UserInfo по UUID
+export async function getUserInfo(token: string, uuid: string): Promise<UserInfo> {
+  const response = await fetch(`${API_BASE_URL}/user/${uuid}`, {
+    method: "GET",
+    headers: headers(token),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to fetch user info");
+  }
+
+  const data = await response.json();
+  return Array.isArray(data.user) ? data.user[0] : data.user;
+}
+

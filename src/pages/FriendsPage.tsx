@@ -10,18 +10,20 @@ import {
   removeFriend,
   searchUsers,
 } from "../services/friends-api";
-import { FriendRequest, Friend, User } from "../types";
+import { FriendRequest, Friend, UserInfo } from "../types";
+import { getUserInfo } from "../services/api";
 
 const FriendsPage: React.FC = () => {
   const { token } = useAuth();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<User[]>([]);
+  const [searchResults, setSearchResults] = useState<UserInfo[]>([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [friendRequestUsernames, setFriendRequestUsernames] = useState<{ [key: number]: string }>({});
 
   // Загрузка списка друзей
   useEffect(() => {
@@ -44,6 +46,14 @@ const FriendsPage: React.FC = () => {
       try {
         const requests = await fetchFriendRequests(token);
         setFriendRequests(requests);
+        const usernames: { [key: number]: string } = {};
+        await Promise.all(
+          requests.map(async (req) => {
+            const userInfo = await getUserInfo(token, req.from_user_id);
+            usernames[req.id] = userInfo.username;
+          })
+        );
+        setFriendRequestUsernames(usernames);
       } catch (err: any) {
         console.error("Failed to load friend requests:", err);
       }
@@ -62,7 +72,7 @@ const FriendsPage: React.FC = () => {
     try {
       const results = await searchUsers(searchQuery, token);
       const filtered = results.filter(
-        (user) => !friends.some((friend) => friend.friendID === user.userID)
+        (user) => !friends.some((friend) => friend.friend_id === user.user_id)
       );
       setSearchResults(filtered);
     } catch (err: any) {
@@ -111,7 +121,7 @@ const FriendsPage: React.FC = () => {
     if (!token) return;
     try {
       await removeFriend(friendID, token);
-      setFriends((prev) => prev.filter((friend) => friend.friendID !== friendID));
+      setFriends((prev) => prev.filter((friend) => friend.friend_id !== friendID));
       setSuccess(`Friend "${friendID}" removed successfully!`);
       setTimeout(() => setSuccess(""), 3000);
     } catch (err: any) {
@@ -128,10 +138,10 @@ const FriendsPage: React.FC = () => {
       setFriendRequests((prev) => prev.filter((req) => req.id !== requestId));
       // Добавляем нового друга, если его ещё нет
       setFriends((prev) => {
-        if (!prev.some((friend) => friend.friendID === fromUserID)) {
+        if (!prev.some((friend) => friend.friend_id === fromUserID)) {
           return [
             ...prev,
-            { id: requestId, userID: "", friendID: fromUserID, createdAt: new Date().toISOString() },
+            { id: requestId, user_id: "", friend_id: fromUserID, created_at: new Date().toISOString() },
           ];
         }
         return prev;
@@ -178,7 +188,7 @@ const FriendsPage: React.FC = () => {
           <div className="grid gap-2">
             {searchResults.map((user, index) => (
               <div
-                key={user.userID || `user-${index}`}
+                key={user.username || `user-${index}`}
                 className="flex items-center justify-between p-3 rounded-lg bg-white shadow-sm"
               >
                 <span>{user.username}</span>
@@ -201,9 +211,11 @@ const FriendsPage: React.FC = () => {
                 key={req.id}
                 className="flex items-center justify-between p-3 rounded-lg bg-white shadow-sm"
               >
-                <span>Заявка от: {req.fromUserID}</span>
+                <span>
+                  <strong className="text-blue-600">{friendRequestUsernames[req.id]}</strong> хочет добавить вас в друзья
+                </span>
                 <div className="flex gap-2">
-                  <Button variant="primary" size="sm" onClick={() => handleAcceptFriendRequest(req.id, req.fromUserID)}>
+                  <Button variant="primary" size="sm" onClick={() => handleAcceptFriendRequest(req.id, req.from_user_id)}>
                     Принять
                   </Button>
                   <Button variant="ghost" size="sm" onClick={() => handleDeclineFriendRequest(req.id)}>
@@ -226,8 +238,8 @@ const FriendsPage: React.FC = () => {
               key={friend.id}
               className="flex justify-between items-center p-4 border rounded-lg shadow-sm bg-white"
             >
-              <span>{friend.friendID}</span>
-              <Button variant="ghost" size="sm" onClick={() => handleRemoveFriend(friend.friendID)}>
+              <span>{friend.friend_id}</span>
+              <Button variant="ghost" size="sm" onClick={() => handleRemoveFriend(friend.friend_id)}>
                 Удалить
               </Button>
             </div>

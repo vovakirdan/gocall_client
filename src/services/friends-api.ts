@@ -11,7 +11,7 @@ export async function fetchFriendRequests(token: string): Promise<FriendRequest[
     throw new Error("Failed to fetch friend requests");
   }
   const data = await response.json();
-  return Array.isArray(data.requests) ? data.requests : []; // предполагается, что сервер вернёт { requests: [...] }
+  return Array.isArray(data.friend_requests) ? data.friend_requests : []; // предполагается, что сервер вернёт { requests: [...] }
 }
 
 // Функция для принятия заявки

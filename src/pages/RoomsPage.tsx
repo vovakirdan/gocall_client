@@ -12,7 +12,7 @@ import {
 } from "../services/rooms-api";
 import { fetchFriends } from "../services/friends-api";
 import { useNavigate } from "react-router-dom";
-import { Room } from "../types";
+import { Room, Friend } from "../types";
 
 const RoomsPage: React.FC = () => {
   const { token } = useAuth();
@@ -20,7 +20,7 @@ const RoomsPage: React.FC = () => {
   // Состояния для комнат, приглашённых комнат, списка друзей
   const [rooms, setRooms] = useState<Room[]>([]);
   const [invitedRooms, setInvitedRooms] = useState<Room[]>([]);
-  const [friends, setFriends] = useState<string[]>([]);
+  const [friends, setFriends] = useState<Friend[]>([]);
   // Состояние для ввода нового названия комнаты
   const [newRoomName, setNewRoomName] = useState("");
   // Состояния для отображения контекстного меню и модального окна приглашения
@@ -60,7 +60,7 @@ const RoomsPage: React.FC = () => {
     try {
       const newRoom = await createRoom(newRoomName, token);
       // Отмечаем как свою комнату
-      newRoom.isOwner = true;
+      newRoom.is_owner = true;
       setRooms((prev) => [...prev, newRoom]);
       setNewRoomName("");
     } catch (error: any) {
@@ -73,8 +73,8 @@ const RoomsPage: React.FC = () => {
     if (!token) return;
     try {
       await deleteRoom(roomId, token);
-      setRooms((prev) => prev.filter((room) => room.RoomID !== roomId));
-      setInvitedRooms((prev) => prev.filter((room) => room.RoomID !== roomId));
+      setRooms((prev) => prev.filter((room) => room.room_id !== roomId));
+      setInvitedRooms((prev) => prev.filter((room) => room.room_id !== roomId));
       setActiveRoomMenu(null);
     } catch (error: any) {
       console.error("Failed to delete room:", error.message);
@@ -89,10 +89,10 @@ const RoomsPage: React.FC = () => {
     try {
       await updateRoom(roomId, newName, token);
       setRooms((prev) =>
-        prev.map((room) => (room.RoomID === roomId ? { ...room, Name: newName } : room))
+        prev.map((room) => (room.room_id === roomId ? { ...room, name: newName } : room))
       );
       setInvitedRooms((prev) =>
-        prev.map((room) => (room.RoomID === roomId ? { ...room, Name: newName } : room))
+        prev.map((room) => (room.room_id === roomId ? { ...room, name: newName } : room))
       );
       setActiveRoomMenu(null);
     } catch (error: any) {
@@ -169,49 +169,49 @@ const RoomsPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {allRooms.map((room) => (
             <div
-              key={room.RoomID}
+              key={room.room_id}
               className={`relative p-4 rounded-lg shadow ${
-                room.isOwner ? "border-2 border-blue-500" : "border-2 border-green-500"
+                room.is_owner ? "border-2 border-blue-500" : "border-2 border-green-500"
               }`}
             >
               <div className="mb-2">
-                <h3 className="font-medium">{room.Name}</h3>
+                <h3 className="font-medium">{room.name}</h3>
               </div>
               <div className="flex justify-between items-center">
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => handleJoinRoom(room.RoomID)}
+                  onClick={() => handleJoinRoom(room.room_id)}
                 >
                   Присоединиться
                 </Button>
-                <button onClick={() => toggleContextMenu(room.RoomID)}>
+                <button onClick={() => toggleContextMenu(room.room_id)}>
                   <MoreVertical className="h-5 w-5" />
                 </button>
               </div>
               {/* Контекстное меню быстрых действий */}
-              {activeRoomMenu === room.RoomID && (
+              {activeRoomMenu === room.room_id && (
                 <div
                   ref={menuRef}
                   className="absolute right-2 top-10 bg-white bg-opacity-80 backdrop-blur-sm rounded-lg shadow-md z-10 p-2"
                 >
-                  {room.isOwner ? (
+                  {room.is_owner ? (
                     <>
                       <button
                         className="flex items-center gap-2 px-2 py-1 hover:bg-gray-200 rounded"
-                        onClick={() => handleDeleteRoom(room.RoomID)}
+                        onClick={() => handleDeleteRoom(room.room_id)}
                       >
                         <span>Удалить комнату</span>
                       </button>
                       <button
                         className="flex items-center gap-2 px-2 py-1 hover:bg-gray-200 rounded"
-                        onClick={() => handleEditRoom(room.RoomID)}
+                        onClick={() => handleEditRoom(room.room_id)}
                       >
                         <span>Редактировать название</span>
                       </button>
                       <button
                         className="flex items-center gap-2 px-2 py-1 hover:bg-gray-200 rounded"
-                        onClick={() => handleInviteFriend(room.RoomID)}
+                        onClick={() => handleInviteFriend(room.room_id)}
                       >
                         <span>Пригласить друга</span>
                       </button>
@@ -220,7 +220,7 @@ const RoomsPage: React.FC = () => {
                     <>
                       <button
                         className="flex items-center gap-2 px-2 py-1 hover:bg-gray-200 rounded"
-                        onClick={() => handleInviteFriend(room.RoomID)}
+                        onClick={() => handleInviteFriend(room.room_id)}
                       >
                         <span>Пригласить друга</span>
                       </button>
@@ -249,14 +249,14 @@ const RoomsPage: React.FC = () => {
               <ul>
                 {friends.map((friend) => (
                   <li
-                    key={friend}
+                    key={friend.friend_id}
                     className="flex justify-between items-center p-2 hover:bg-gray-100 rounded"
                   >
-                    <span>{friend}</span>
+                    <span>{friend.friend_id}</span>
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={() => handleConfirmInvite(friend)}
+                      onClick={() => handleConfirmInvite(friend.friend_id)}
                     >
                       Пригласить
                     </Button>

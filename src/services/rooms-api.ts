@@ -68,11 +68,11 @@ export async function createRoom(name: string, token: string): Promise<Room> {
   }
   const data = await response.json();
   return {
-    RoomID: data.roomID,
-    Name: data.name,
-    Type: data.type,
-    UserID: data.userID,
-    CreatedAt: new Date().toISOString(),
+    room_id: data.roomID,
+    name: data.name,
+    type: data.type,
+    user_id: data.userID,
+    created_at: new Date().toISOString(),
   };
 }
 

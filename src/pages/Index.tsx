@@ -51,8 +51,8 @@ const Index: React.FC = () => {
     if (!token) return;
     try {
       await deleteRoom(roomId, token);
-      setRooms((prev) => prev.filter((room) => room.RoomID !== roomId));
-      setInvitedRooms((prev) => prev.filter((room) => room.RoomID !== roomId));
+      setRooms((prev) => prev.filter((room) => room.room_id !== roomId));
+      setInvitedRooms((prev) => prev.filter((room) => room.room_id !== roomId));
       setActiveRoomMenu(null);
     } catch (error: any) {
       console.error("Failed to delete room:", error.message);
@@ -67,10 +67,10 @@ const Index: React.FC = () => {
     try {
       await updateRoom(roomId, newName, token);
       setRooms((prev) =>
-        prev.map((room) => (room.RoomID === roomId ? { ...room, Name: newName } : room))
+        prev.map((room) => (room.room_id === roomId ? { ...room, name: newName } : room))
       );
       setInvitedRooms((prev) =>
-        prev.map((room) => (room.RoomID === roomId ? { ...room, Name: newName } : room))
+        prev.map((room) => (room.room_id === roomId ? { ...room, name: newName } : room))
       );
       setActiveRoomMenu(null);
     } catch (error: any) {
@@ -142,51 +142,51 @@ const Index: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {allRooms.map((room) => (
                 <div
-                  key={room.RoomID}
+                  key={room.room_id}
                   className={`relative p-4 rounded-lg shadow ${
-                    room.isOwner
+                    room.is_owner
                       ? "border-2 border-blue-500"
                       : "border-2 border-green-500"
                   }`}
                 >
                   <div className="mb-2">
-                    <h3 className="font-medium">{room.Name}</h3>
+                    <h3 className="font-medium">{room.name}</h3>
                   </div>
                   <div className="flex justify-between items-center">
                     <Button
                       variant="secondary"
                       size="sm"
-                      onClick={() => handleJoinRoom(room.RoomID)}
+                      onClick={() => handleJoinRoom(room.room_id)}
                     >
                       Присоединиться
                     </Button>
-                    <button onClick={() => toggleContextMenu(room.RoomID)}>
+                    <button onClick={() => toggleContextMenu(room.room_id)}>
                       <MoreVertical className="h-5 w-5" />
                     </button>
                   </div>
                   {/* Контекстное меню */}
-                  {activeRoomMenu === room.RoomID && (
+                  {activeRoomMenu === room.room_id && (
                     <div
                       ref={menuRef}
                       className="absolute right-2 top-10 bg-white bg-opacity-80 backdrop-blur-sm rounded-lg shadow-md z-10 p-2"
                     >
-                      {room.isOwner ? (
+                      {room.is_owner ? (
                         <>
                           <button
                             className="flex items-center gap-2 px-2 py-1 hover:bg-gray-200 rounded"
-                            onClick={() => handleDeleteRoom(room.RoomID)}
+                            onClick={() => handleDeleteRoom(room.room_id)}
                           >
                             <span>Удалить комнату</span>
                           </button>
                           <button
                             className="flex items-center gap-2 px-2 py-1 hover:bg-gray-200 rounded"
-                            onClick={() => handleEditRoom(room.RoomID)}
+                            onClick={() => handleEditRoom(room.room_id)}
                           >
                             <span>Редактировать название</span>
                           </button>
                           <button
                             className="flex items-center gap-2 px-2 py-1 hover:bg-gray-200 rounded"
-                            onClick={() => handleInviteFriend(room.RoomID)}
+                            onClick={() => handleInviteFriend(room.room_id)}
                           >
                             <span>Пригласить друга</span>
                           </button>
@@ -195,7 +195,7 @@ const Index: React.FC = () => {
                         <>
                           <button
                             className="flex items-center gap-2 px-2 py-1 hover:bg-gray-200 rounded"
-                            onClick={() => handleInviteFriend(room.RoomID)}
+                            onClick={() => handleInviteFriend(room.room_id)}
                           >
                             <span>Пригласить друга</span>
                           </button>
@@ -223,7 +223,7 @@ const Index: React.FC = () => {
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-green-500" />
-                    <span>{friend.friendID}</span>
+                    <span>{friend.friend_id}</span>
                   </div>
                   <Button variant="ghost" size="sm">
                     <Video className="h-4 w-4 mr-2" />
@@ -255,11 +255,11 @@ const Index: React.FC = () => {
                     key={friend.id}
                     className="flex justify-between items-center p-2 hover:bg-gray-100 rounded"
                   >
-                    <span>{friend.friendID}</span>
+                    <span>{friend.friend_id}</span>
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={() => handleConfirmInvite(friend.friendID)}
+                      onClick={() => handleConfirmInvite(friend.friend_id)}
                     >
                       Пригласить
                     </Button>

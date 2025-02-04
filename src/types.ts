@@ -2,52 +2,57 @@
 
 export interface User {
   id: number;
-  userID: string;
+  user_id: string;
   username: string;
   name: string;
   email: string;
-  isOnline: boolean;
-  createdAt: string;
+  is_online: boolean;
+  created_at: string;
+}
+
+export interface UserInfo {
+  id: number;
+  username: string;
+  name: string;
 }
 
 export interface Room {
-  RoomID: string;
-  UserID: string; // можно использовать string (UUID)
-  Name: string;
-  Type: string;
-  CreatedAt: string;
-  isOwner?: boolean;
+  room_id: string;
+  user_id: string; // можно использовать string (UUID)
+  name: string;
+  type: string;
+  created_at: string;
+  is_owner?: boolean;
 }
 
 export interface RoomMember {
   id: number;
-  roomID: string;
-  userID: string;
+  room_id: string;
+  user_id: string;
   role: "admin" | "member" | "viewer";
-  joinedAt: string;
+  joined_at: string;
 }
 
 export interface Friend {
   id: number;
-  userID: string;
-  friendID: string;
-  createdAt: string;
+  user_id: string;
+  friend_id: string;
+  created_at: string;
 }
 
 export interface FriendRequest {
   id: number;
-  fromUserID: string;
-  toUserID: string;
+  from_user_id: string;
+  to_user_id: string;
   status: "pending" | "accepted" | "declined";
-  createdAt: string;
+  created_at: string;
 }
 
 export interface RoomInvite {
   id: number;
-  roomID: string;
-  inviterUserID: string;
-  invitedUserID: string;
+  room_id: string;
+  inviter_user_id: string;
+  invited_user_id: string;
   status: "pending" | "accepted" | "declined";
-  createdAt: string;
+  created_at: string;
 }
-  
