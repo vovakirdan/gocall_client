@@ -1,4 +1,4 @@
-import { UserInfo } from "../types";
+import { UserInfo, User } from "../types";
 
 export const API_BASE_URL = "http://localhost:8080/api";
 
@@ -107,3 +107,17 @@ export async function getUserInfo(token: string, uuid: string): Promise<UserInfo
   return Array.isArray(data.user) ? data.user[0] : data.user;
 }
 
+export async function getMe(token: string): Promise<User> {
+  const response = await fetch(`${API_BASE_URL}/user/me`, {
+    method: "GET",
+    headers: headers(token),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to fetch user info");
+  }
+
+  const data = await response.json();
+  return Array.isArray(data.user) ? data.user[0] : data.user;
+}
