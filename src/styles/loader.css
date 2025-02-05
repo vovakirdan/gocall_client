@@ -1,0 +1,65 @@
+.loader {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotateZ(45deg);
+    width: 75px;
+    height: 75px;
+  }
+  
+  .loader div {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    transform: translate(0px, 0px);
+    animation-duration: 7s;
+    animation-iteration-count: infinite;
+    animation-fill-mode: forwards;
+    animation-direction: normal;
+    animation-timing-function: cubic-bezier(0.75, 0, 0, 0.75);
+  }
+  
+  .loader div:before {
+    content: "";
+    display: inline-block;
+    width: 100%;
+    height: 100%;
+    background-color: #00ADD8; /* Основной цвет Go */
+    border-radius: 3px;
+    animation-name: background;
+    animation-duration: 10s;
+    animation-iteration-count: infinite;
+    animation-direction: normal;
+    animation-timing-function: ease-in-out;
+  }
+  
+  @keyframes background {
+    10% { background-color: #0175C2; } /* Темно-синий Go */
+    20% { background-color: #00ADD8; } /* Голубой Go */
+    30% { background-color: #F5F5F5; } /* Светло-серый */
+    40% { background-color: #FFDD57; } /* Желтый */
+    50% { background-color: #E44D26; } /* Оранжевый */
+    60% { background-color: #C0392B; } /* Красный */
+    70% { background-color: #1ABC9C; } /* Бирюзовый */
+    80% { background-color: #00ADD8; }
+    90% { background-color: #0175C2; }
+  }
+  
+  @keyframes position {
+    0%, 100% { transform: translate(0px, 20px); }
+    25% { transform: translate(20px, 40px); }
+    50% { transform: translate(40px, 20px); }
+    75% { transform: translate(20px, 0px); }
+  }
+  
+  .loader div:nth-child(1) { animation: position 2s infinite linear; }
+  .loader div:nth-child(2) { animation: position 2s infinite linear 0.2s; }
+  .loader div:nth-child(3) { animation: position 2s infinite linear 0.4s; }
+  .loader div:nth-child(4) { animation: position 2s infinite linear 0.6s; }
+  .loader div:nth-child(5) { animation: position 2s infinite linear 0.8s; }
+  .loader div:nth-child(6) { animation: position 2s infinite linear 1s; }
+  .loader div:nth-child(7) { animation: position 2s infinite linear 1.2s; }
+  
