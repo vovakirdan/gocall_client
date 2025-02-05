@@ -45,9 +45,8 @@ function App() {
             <Route path="/friends" element={<FriendsPage />} />
             <Route path="/rooms" element={<RoomsPage />} />
             <Route path="/room/:roomID" element={<RoomPage />} />
+            <Route path="/" element={<Navigate to="/home" />} />
           </Route>
-          {/* Перенаправление с корня */}
-          <Route path="/" element={<Navigate to="/home" />} />
         </Routes>
       </Router>
     </AuthProvider>
