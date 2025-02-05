@@ -1,3 +1,6 @@
+@use 'sass:list';
+@use 'sass:math';
+
 $boxsize: 20;
 $gutter: 5;
 $x1: $boxsize + $gutter;
@@ -54,12 +57,12 @@ $duration: 7;
     );
 
     @for $i from 1 through 7 {
-      $part: $duration / length($positions);
-      $delay: (7 - ($i * $part)) - ($duration / $part);
+      $part: math.div($duration, list.length($positions));
+      $delay: (7 - ($i * $part)) - math.div($duration, $part);
 
       &:nth-child(#{$i}) {
         animation-delay: #{$delay}s;
-        transform: translate(#{ nth($positions, $i) });
+        transform: translate(#{ list.nth($positions, $i) });
         animation-name: position#{$i};
       }
     }
@@ -81,17 +84,17 @@ $duration: 7;
   );
 
   @keyframes position#{$i} {
-    $frames: length($positions) - 1;
+    $frames: list.length($positions) - 1;
 
     @for $ii from 0 through $frames {
-      $percent: $ii * (100 / $frames);
+      $percent: $ii * math.div(100, $frames);
       $percent2: $percent + 5;
       $positionIndex: $ii + 1;
-      $altIndex: $positionIndex - (length($positions));
+      $altIndex: $positionIndex - (list.length($positions));
       $position: if(
-        length($positions) < $positionIndex,
-          nth($positions, $altIndex),
-          nth($positions, $positionIndex)
+        list.length($positions) < $positionIndex,
+          list.nth($positions, $altIndex),
+          list.nth($positions, $positionIndex)
       );
 
       #{$percent}% { transform: translate(#{$position}); }
