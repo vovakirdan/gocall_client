@@ -11,6 +11,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 import { AuthProvider } from "./context/AuthContext";
 import { isDesktop } from "./utils/platform";
+import SettingsPage from "./pages/SettingsPage";
 
 function App() {
   const [apiAvailable, setApiAvailable] = useState(true);
@@ -45,6 +46,7 @@ function App() {
             <Route path="/friends" element={<FriendsPage />} />
             <Route path="/rooms" element={<RoomsPage />} />
             <Route path="/room/:roomID" element={<RoomPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
             <Route path="/" element={<Navigate to="/home" />} />
           </Route>
         </Routes>
