@@ -1,5 +1,5 @@
 import React from "react";
-import "../styles/loader.css"; // Подключаем стили
+import "../styles/loader.scss"; // Подключаем стили
 
 const Loader: React.FC = () => {
   return (

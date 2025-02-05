@@ -43,9 +43,9 @@ function App() {
   if (apiAvailable === null) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-100 text-gray-800">
-        <Loader />
         <h1 className="text-xl font-semibold mt-4 text-blue-600">Checking API Status...</h1>
         <p className="text-gray-600">Please wait while we check the server availability.</p>
+        <Loader />
       </div>
     );
   }
@@ -53,7 +53,6 @@ function App() {
   if (apiAvailable === false) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-100 text-gray-800">
-        <Loader />
         <div className="text-center">
           <h1 className="text-3xl font-bold text-red-600 mb-4">Server Unavailable</h1>
           <p className="text-lg mb-2">The application cannot connect to the backend server.</p>
@@ -61,6 +60,7 @@ function App() {
             Please check if the API is running and try again. The system will retry automatically.
           </p>
         </div>
+        <Loader />
       </div>
     );
   }
