@@ -1,5 +1,6 @@
 import React from "react";
 import { Home, Users, Video, Settings } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 interface MenuItem {
   title: string;
@@ -15,9 +16,11 @@ const menuItems: MenuItem[] = [
 ];
 
 const AppSidebar: React.FC = () => {
+  const { user } = useAuth();
+
   return (
     <aside className="w-64 bg-gray-200 p-4 sticky top-0 h-screen">
-      <h2 className="text-xl font-bold mb-4">Menu</h2>
+      <h2 className="text-xl font-bold mb-4">Hello, {user ? user.username : "Guest"}!</h2>
       <nav>
         <ul>
           {menuItems.map((item) => (

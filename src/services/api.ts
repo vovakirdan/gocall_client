@@ -10,8 +10,10 @@ export const headers = (token?: string) => ({
 
 export async function checkAPIStatus(): Promise<boolean> {
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, { method: "OPTIONS" });
-    return response.ok;
+    const response = await fetch(`${API_BASE_URL}/ping`, { method: "GET" });
+    const data = await response.json();
+    console.log("Ping", data.message);
+    return data.message === "pong";
   } catch (error) {
     return false;
   }
@@ -119,5 +121,5 @@ export async function getMe(token: string): Promise<User> {
   }
 
   const data = await response.json();
-  return Array.isArray(data.user) ? data.user[0] : data.user;
+  return data;
 }
