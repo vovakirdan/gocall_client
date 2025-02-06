@@ -33,12 +33,22 @@ export interface RoomMember {
   joined_at: string;
 }
 
+/**
+ * {
+    "id": 11,
+    "user_id": "d4a09bd3-f5f9-4e80-b478-117355f934df",
+    "username": "testuser",
+    "is_pinned": true,
+    "created_at": "2025-02-04T16:33:37.705725385+03:00"
+}
+ */
 export interface Friend {
   id: number;
   username: string;
   is_online: boolean;
   user_id: string;
   is_pinned: boolean;
+  created_at: string;
 }
 
 export interface FriendRequest {

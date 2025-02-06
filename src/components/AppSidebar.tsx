@@ -29,6 +29,7 @@ const AppSidebar: React.FC = () => {
       try {
         const pinnedList = await fetchPinnedFriends(token);
         setPinned(pinnedList);
+        console.log(pinnedList);
       } catch (err) {
         console.error(err);
       }
@@ -37,6 +38,7 @@ const AppSidebar: React.FC = () => {
   }, [token]);
 
   const handlePinnedClick = (friend: Friend) => {
+    console.log("Friend from pinned", friend)
     navigate(`/chat/${friend.user_id}`);
   };
 

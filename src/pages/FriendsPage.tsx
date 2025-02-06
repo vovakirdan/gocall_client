@@ -153,7 +153,8 @@ const FriendsPage: React.FC = () => {
               user_id: fromUserID,
               username: prev.find((user) => user.user_id === fromUserID)?.username || "",
               is_online: false,
-              is_pinned: false
+              is_pinned: false,
+              created_at: new Date().toISOString(),
             },
           ];
         }
@@ -213,6 +214,7 @@ const FriendsPage: React.FC = () => {
 
   // Обработчик перехода в чат
   const goToChat = (friend: Friend) => {
+    console.log("friend from friends", friend);
     navigate(`/chat/${friend.user_id}`);
   };
 
