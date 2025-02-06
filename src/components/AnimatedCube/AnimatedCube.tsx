@@ -108,11 +108,12 @@ const AnimatedCube: FC = () => {
         stroke="#6D7582"
         strokeLinejoin="round"
       >
-        <g ref={cubeRef} id="cube" fill="#fff">
-          {/* Base path */}
-          <path ref={baseRef} id="base" />
-          {/* Lid path */}
-          <path ref={lidRef} id="lid" />
+        {/* Added transformOrigin so the cube rotates around its center */}
+        <g ref={cubeRef} id="cube" style={{ transformOrigin: '30px 30px' }}>
+          {/* Base path with fill color */}
+          <path ref={baseRef} id="base" fill="#d9d9d9" />
+          {/* Lid path with a different fill color */}
+          <path ref={lidRef} id="lid" fill="#b3b3b3" />
         </g>
       </svg>
     </div>
