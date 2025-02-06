@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Lock, User, ArrowRight } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { login, register } from "../services/api";
+import { TypingEffect } from "../components/TypingEffect/TypingEffect";
 
 const LoginSignupPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true); // true для логина, false для регистрации
@@ -55,7 +56,19 @@ const LoginSignupPage: React.FC = () => {
               variants={formVariants}
               transition={{ duration: 0.3 }}
             >
-              <h1 className="text-3xl md:text-4xl font-bold mb-8 text-gray-800">
+              <div className="flex flex-col items-center mb-6">
+                <div
+                  className={`text-3xl font-bold ${
+                    isLogin ? "text-blue-600" : "text-green-600"
+                  }`}
+                >
+                  <TypingEffect
+                    init="GoCall is"
+                    words={["fast", "secure", "AI featured", "private", "reliable"]}
+                  />
+                </div>
+              </div>
+              <h1 className="text-3xl md:text-4xl font-bold mb-8 text-gray-800 mt-4">
                 {isLogin ? "Welcome back" : "Create an account"}
               </h1>
               <div className="space-y-4">
