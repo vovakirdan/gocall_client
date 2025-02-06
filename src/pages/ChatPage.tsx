@@ -33,12 +33,12 @@ const ChatPage: React.FC = () => {
   }, [friendId]);
 
   return (
-    <div className="p-4 flex flex-col gap-4 h-screen">
+    <div className="p-4 flex flex-col gap-4 max-h-screen max-w-md mx-auto">
       <h1 className="text-2xl font-bold">
         Chat with: <span className="text-blue-600">{friendId}</span>
       </h1>
 
-      <div className="flex-1 border p-3 overflow-y-auto">
+      <div className="flex-1 border p-3 overflow-y-auto max-h-screen">
         {chatMessages.length === 0 ? (
           <p className="text-gray-500">No messages yet.</p>
         ) : (

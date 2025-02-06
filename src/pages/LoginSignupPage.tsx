@@ -78,6 +78,11 @@ const LoginSignupPage: React.FC = () => {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleSubmit();
+                    }
+                  }}
                 />
                 <InputField
                   icon={Lock}
@@ -85,6 +90,11 @@ const LoginSignupPage: React.FC = () => {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleSubmit();
+                    }
+                  }}
                 />
               </div>
               {error && <p className="text-red-500 mt-4">{error}</p>}
@@ -141,12 +151,14 @@ const InputField = ({
     type,
     value,
     onChange,
+    onKeyDown,
   }: {
     icon: React.ElementType;
     placeholder: string;
     type: string;
     value: string;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   }) => (
     <div className="flex items-center bg-gray-100 p-3 rounded-lg">
       <Icon className="text-gray-500 mr-3" size={20} />
@@ -155,6 +167,7 @@ const InputField = ({
         placeholder={placeholder}
         value={value}
         onChange={onChange}
+        onKeyDown={onKeyDown}
         className="bg-transparent outline-none flex-1 text-gray-800"
       />
     </div>
