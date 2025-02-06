@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Friend } from "../types";
 import { fetchPinnedFriends } from "../services/friends-api";
+import { MessageCircle } from "lucide-react";
 
 interface MenuItem {
   title: string;
@@ -29,7 +30,6 @@ const AppSidebar: React.FC = () => {
       try {
         const pinnedList = await fetchPinnedFriends(token);
         setPinned(pinnedList);
-        console.log(pinnedList);
       } catch (err) {
         console.error(err);
       }
@@ -70,12 +70,14 @@ const AppSidebar: React.FC = () => {
           <ul className="space-y-1">
             {pinned.map((fr) => (
               <li key={fr.id}>
-                <button
-                  onClick={() => handlePinnedClick(fr)}
-                  className="w-full text-left px-2 py-1 rounded hover:bg-blue-50"
-                >
-                  {fr.username}
-                </button>
+                <div className="flex items-center justify-between w-full px-2 py-1 rounded hover:bg-blue-100">
+                  <span>{fr.username}</span>
+                  <div className="flex gap-2">
+                    <button onClick={() => handlePinnedClick(fr)} className="text-blue-500 hover:text-blue-700">
+                      <MessageCircle className="h-5 w-5" />
+                    </button>
+                  </div>
+                </div>
               </li>
             ))}
           </ul>

@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useWebSocketContext } from "../context/WebSocketContext";
 import Button from "../components/Button";
+import { getUserInfo } from "../services/api";
 
 /**
  * A dedicated chat page that retrieves the :friendId param,
@@ -10,10 +11,11 @@ import Button from "../components/Button";
  */
 const ChatPage: React.FC = () => {
   const { friendId } = useParams(); // The URL param
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { messages, sendMessage } = useWebSocketContext();
 
   const [inputMessage, setInputMessage] = useState<string>("");
+  const [friendUsername, setFriendUsername] = useState<string>("");
 
   // Filter relevant messages for this friend
   const chatMessages = messages.filter(
@@ -29,13 +31,25 @@ const ChatPage: React.FC = () => {
   };
 
   useEffect(() => {
-    // Example: scroll to bottom or any effect when friendId changes
-  }, [friendId]);
+    const fetchFriendUsername = async () => {
+      if (token && friendId) {
+        try {
+          const userInfo = await getUserInfo(token, friendId);
+          setFriendUsername(userInfo.username || "Unknown");
+        } catch (error) {
+          console.error("Failed to fetch user info:", error);
+          setFriendUsername("Unknown");
+        }
+      }
+    };
+
+    fetchFriendUsername();
+  }, [token, friendId]);
 
   return (
     <div className="p-4 flex flex-col gap-4 max-h-screen max-w-md mx-auto">
       <h1 className="text-2xl font-bold">
-        Chat with: <span className="text-blue-600">{friendId}</span>
+        Chat with: <span className="text-blue-600">{friendUsername}</span>
       </h1>
 
       <div className="flex-1 border p-3 overflow-y-auto max-h-screen">
@@ -49,7 +63,7 @@ const ChatPage: React.FC = () => {
                 key={idx}
                 className={`mb-2 ${isMe ? "text-right text-blue-600" : "text-left text-gray-600"}`}
               >
-                <strong>{isMe ? "Me" : friendId}:</strong> {m.message}
+                <strong>{isMe ? "Me" : friendUsername}:</strong> {m.message}
               </div>
             );
           })

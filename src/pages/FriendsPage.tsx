@@ -15,6 +15,7 @@ import {
 import { FriendRequest, Friend, UserInfo } from "../types";
 import { getUserInfo } from "../services/api";
 import { useNavigate } from "react-router-dom";
+import { MessageCircle, PinOff, Pin, Trash2 } from "lucide-react";
 
 const FriendsPage: React.FC = () => {
   const { token, user } = useAuth();
@@ -297,19 +298,19 @@ const FriendsPage: React.FC = () => {
               <span>{friend.username}</span>
               <div className="flex gap-2">
                 <Button variant="primary" size="sm" onClick={() => goToChat(friend)}>
-                  Чат
+                  <MessageCircle className="h-5 w-5" />
                 </Button>
                 {friend.is_pinned ? (
                   <Button variant="ghost" size="sm" onClick={() => handleUnpin(friend)}>
-                    Unpin
+                    <PinOff className="h-5 w-5" color="red" />
                   </Button>
                 ) : (
                   <Button variant="ghost" size="sm" onClick={() => handlePin(friend)}>
-                    Pin
+                    <Pin className="h-5 w-5" color="green" />
                   </Button>
                 )}
                 <Button variant="ghost" size="sm" onClick={() => handleRemoveFriend(friend.user_id)}>
-                  Удалить
+                  <Trash2 className="h-5 w-5" color="red" />
                 </Button>
               </div>
             </div>
