@@ -32,13 +32,11 @@ function App() {
     checkAPI();
 
     const interval = setInterval(() => {
-      if (apiAvailable === false) {
-        checkAPI();
-      }
-    }, 10000); // Проверяем API каждые 10 секунд
+      checkAPI();
+    }, apiAvailable ? 60000 : 10000); // Проверяем API каждые 60 секунд если он доступен, иначе каждые 10 секунд
 
     return () => clearInterval(interval); // Очищаем интервал при размонтировании
-  }, [apiAvailable]);
+  }, []);
 
   if (apiAvailable === null) {
     return (
