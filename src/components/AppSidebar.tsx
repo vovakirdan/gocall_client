@@ -20,7 +20,11 @@ const AppSidebar: React.FC = () => {
 
   return (
     <aside className="w-64 bg-gray-200 p-4 sticky top-0 h-screen">
-      <h2 className="text-xl font-bold mb-4">Hello, {user ? user.username : "Guest"}!</h2>
+      <h2 className="text-xl font-bold mb-4">Hello, {user ? user.username : "Guest"}!<br></br>
+      <span className="text-x text-blue-600">
+        Go call?
+      </span>
+      </h2>
       <nav>
         <ul>
           {menuItems.map((item) => (
