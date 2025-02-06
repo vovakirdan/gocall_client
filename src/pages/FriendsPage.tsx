@@ -12,9 +12,10 @@ import {
 } from "../services/friends-api";
 import { FriendRequest, Friend, UserInfo } from "../types";
 import { getUserInfo } from "../services/api";
+import ChatWindow from "../components/ChatWindow";
 
 const FriendsPage: React.FC = () => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -24,6 +25,8 @@ const FriendsPage: React.FC = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
   const [friendRequestUsernames, setFriendRequestUsernames] = useState<{ [key: number]: string }>({});
+  const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
+  const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
 
   useEffect(() => {
     if (!token) return;
@@ -113,7 +116,7 @@ const FriendsPage: React.FC = () => {
       setSuccess(`Friend request sent to ${username}`);
       setTimeout(() => setSuccess(""), 3000);
       // Удаляем отправленный элемент из результатов поиска
-      setSearchResults((prev) => prev.filter((user) => user.username !== username));
+      setSearchResults((prev) => prev.filter((foundUser) => foundUser.username !== username && foundUser.id !== user?.id));
     } catch (err: any) {
       setError(err.message || "Failed to send friend request");
     }
@@ -163,6 +166,16 @@ const FriendsPage: React.FC = () => {
     } catch (err: any) {
       console.error("Failed to decline friend request:", err);
     }
+  };
+
+  const openChat = (friendID: Friend): void => {
+    setSelectedFriend(friendID);
+    setIsChatOpen(true);
+  };
+
+  const closeChat = (): void => {
+    setIsChatOpen(false);
+    setSelectedFriend(null);
   };
 
   return (
@@ -242,13 +255,31 @@ const FriendsPage: React.FC = () => {
               className="flex justify-between items-center p-4 border rounded-lg shadow-sm bg-white"
             >
               <span>{friend.username}</span>
+              <div className="flex gap-2">
+              <Button variant="primary" size="sm" onClick={() => openChat(friend)}>
+                  Чат
+                </Button>
               <Button variant="ghost" size="sm" onClick={() => handleRemoveFriend(friend.user_id)}>
                 Удалить
-              </Button>
+                </Button>
+              </div>
             </div>
           ))
         )}
       </div>
+      {/* NEW CHAT CODE: show chat modal if open */}
+      {isChatOpen && selectedFriend && user && (
+        <ChatWindow
+          friendUser={selectedFriend}
+          currentUser={user}
+          token={token || ""}
+          onClose={closeChat}
+        />
+      )}
+
+      {/* Display success/error messages */}
+      {success && <div className="text-green-500 mt-4">{success}</div>}
+      {error && <div className="text-red-500 mt-4">{error}</div>}
     </div>
   );
 };
