@@ -72,7 +72,7 @@ export const TypingEffect: React.FC<TypingEffectProps> = ({ init, words }) => {
   return (
     <div className="container">
       <p>
-        <span className="non-typed-text">{init}</span> <span className="typed-text">{typedText}</span>
+        <span className="non-typed-text">{init}</span><br></br><span className="typed-text">{typedText}</span>
         <span className={`cursor ${isCursorTyping ? "typing" : ""}`}>&nbsp;</span>
       </p>
     </div>
