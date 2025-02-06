@@ -13,6 +13,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { isDesktop } from "./utils/platform";
 import SettingsPage from "./pages/SettingsPage";
 import Loader from "./components/Loader";
+import { WebSocketProvider } from "./context/WebSocketContext";
 
 function App() {
   const [apiAvailable, setApiAvailable] = useState<boolean | null>(null);
@@ -65,6 +66,7 @@ function App() {
 
   return (
     <AuthProvider>
+      <WebSocketProvider>
       <Router>
         <Routes>
           <Route path="/login" element={<LoginSignupPage />} />
@@ -79,6 +81,7 @@ function App() {
           </Route>
         </Routes>
       </Router>
+      </WebSocketProvider>
     </AuthProvider>
   );
 }

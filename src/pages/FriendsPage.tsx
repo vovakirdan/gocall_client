@@ -12,7 +12,7 @@ import {
 } from "../services/friends-api";
 import { FriendRequest, Friend, UserInfo } from "../types";
 import { getUserInfo } from "../services/api";
-import ChatWindow from "../components/ChatWindow";
+import ChatSidebar from "../components/Chat/ChatSidebar";
 
 const FriendsPage: React.FC = () => {
   const { token, user } = useAuth();
@@ -269,11 +269,8 @@ const FriendsPage: React.FC = () => {
       </div>
       {/* NEW CHAT CODE: show chat modal if open */}
       {isChatOpen && selectedFriend && user && (
-        <ChatWindow
-          friendUser={selectedFriend}
-          currentUser={user}
-          token={token || ""}
-          onClose={closeChat}
+        <ChatSidebar
+          friends={friends}
         />
       )}
 
