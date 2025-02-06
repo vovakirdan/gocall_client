@@ -9,13 +9,16 @@ import {
   fetchFriends,
   removeFriend,
   searchUsers,
+  pinFriend,
+  unpinFriend
 } from "../services/friends-api";
 import { FriendRequest, Friend, UserInfo } from "../types";
 import { getUserInfo } from "../services/api";
-import ChatSidebar from "../components/Chat/ChatSidebar";
+import { useNavigate } from "react-router-dom";
 
 const FriendsPage: React.FC = () => {
   const { token, user } = useAuth();
+  const navigate = useNavigate();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -25,12 +28,10 @@ const FriendsPage: React.FC = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
   const [friendRequestUsernames, setFriendRequestUsernames] = useState<{ [key: number]: string }>({});
-  const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
-  const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
 
   useEffect(() => {
     if (!token) return;
-  
+
     const loadData = async () => {
       try {
         const [friendsData, requests] = await Promise.all([
@@ -43,13 +44,13 @@ const FriendsPage: React.FC = () => {
         setError(err.message || "Failed to load data");
       }
     };
-  
+
     loadData();
   }, [token]); // Загружаем список друзей и заявки 1 раз при изменении токена
-  
+
   useEffect(() => {
     if (!token || friendRequests.length === 0) return;
-  
+
     const loadUsernames = async () => {
       const usernames: { [key: number]: string } = {};
       for (const req of friendRequests) {
@@ -58,15 +59,15 @@ const FriendsPage: React.FC = () => {
           usernames[req.id] = userInfo.username;
         } catch (err) {
           console.warn(`Failed to fetch user info for ${req.from_user_id}:`, err);
-          usernames[req.id] = "Unknown User"; 
+          usernames[req.id] = "Unknown User";
         }
       }
       setFriendRequestUsernames(usernames);
     };
-  
+
     loadUsernames();
   }, [token, friendRequests]); // Загружаем юзернеймы после обновления friendRequests
-  
+
   // Функция поиска
   const fetchSearchResults = useCallback(async () => {
     if (!token) return;
@@ -147,7 +148,13 @@ const FriendsPage: React.FC = () => {
         if (!prev.some((friend) => friend.user_id === fromUserID)) {
           return [
             ...prev,
-            { id: requestId, user_id: fromUserID, username: prev.find((user) => user.user_id === fromUserID)?.username || "", is_online: false },
+            {
+              id: requestId,
+              user_id: fromUserID,
+              username: prev.find((user) => user.user_id === fromUserID)?.username || "",
+              is_online: false,
+              is_pinned: false
+            },
           ];
         }
         return prev;
@@ -168,14 +175,45 @@ const FriendsPage: React.FC = () => {
     }
   };
 
-  const openChat = (friendID: Friend): void => {
-    setSelectedFriend(friendID);
-    setIsChatOpen(true);
+  // Обработчик закрепления друга
+  const handlePin = async (friend: Friend) => {
+    if (!token) return;
+    try {
+      await pinFriend(friend.id, token);
+      setSuccess(`Friend "${friend.username}" pinned`);
+      setTimeout(() => setSuccess(""), 3000);
+
+      setFriends((prev) =>
+        prev.map((f) =>
+          f.id === friend.id ? { ...f, is_pinned: true } : f
+        )
+      );
+    } catch (err: any) {
+      setError(err.message || "Failed to pin friend");
+    }
   };
 
-  const closeChat = (): void => {
-    setIsChatOpen(false);
-    setSelectedFriend(null);
+  // Обработчик открепления друга
+  const handleUnpin = async (friend: Friend) => {
+    if (!token) return;
+    try {
+      await unpinFriend(friend.id, token);
+      setSuccess(`Friend "${friend.username}" unpinned`);
+      setTimeout(() => setSuccess(""), 3000);
+
+      setFriends((prev) =>
+        prev.map((f) =>
+          f.id === friend.id ? { ...f, is_pinned: false } : f
+        )
+      );
+    } catch (err: any) {
+      setError(err.message || "Failed to unpin friend");
+    }
+  };
+
+  // Обработчик перехода в чат
+  const goToChat = (friend: Friend) => {
+    navigate(`/chat/${friend.user_id}`);
   };
 
   return (
@@ -256,24 +294,26 @@ const FriendsPage: React.FC = () => {
             >
               <span>{friend.username}</span>
               <div className="flex gap-2">
-              <Button variant="primary" size="sm" onClick={() => openChat(friend)}>
+                <Button variant="primary" size="sm" onClick={() => goToChat(friend)}>
                   Чат
                 </Button>
-              <Button variant="ghost" size="sm" onClick={() => handleRemoveFriend(friend.user_id)}>
-                Удалить
+                {friend.is_pinned ? (
+                  <Button variant="ghost" size="sm" onClick={() => handleUnpin(friend)}>
+                    Unpin
+                  </Button>
+                ) : (
+                  <Button variant="ghost" size="sm" onClick={() => handlePin(friend)}>
+                    Pin
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" onClick={() => handleRemoveFriend(friend.user_id)}>
+                  Удалить
                 </Button>
               </div>
             </div>
           ))
         )}
       </div>
-      {/* NEW CHAT CODE: show chat modal if open */}
-      {isChatOpen && selectedFriend && user && (
-        <ChatSidebar
-          friends={friends}
-        />
-      )}
-
       {/* Display success/error messages */}
       {success && <div className="text-green-500 mt-4">{success}</div>}
       {error && <div className="text-red-500 mt-4">{error}</div>}

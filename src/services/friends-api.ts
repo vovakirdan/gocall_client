@@ -104,3 +104,32 @@ export async function searchUsers(query: string, token: string): Promise<User[]>
   const data = await response.json();
   return Array.isArray(data.users) ? data.users : [];
 }
+
+export async function pinFriend(friendId: number, token: string) {
+  const res = await fetch(`${API_BASE_URL}/friends/pin`, {
+    method: "POST",
+    headers: headers(token),
+    body: JSON.stringify({ friend_id: friendId })
+  });
+  if (!res.ok) throw new Error("Failed to pin friend");
+}
+
+export async function unpinFriend(friendId: number, token: string) {
+  const res = await fetch(`${API_BASE_URL}/friends/unpin`, {
+    method: "DELETE",
+    headers: headers(token),
+    body: JSON.stringify({ friend_id: friendId })
+  });
+  if (!res.ok) throw new Error("Failed to unpin friend");
+}
+
+export async function fetchPinnedFriends(token: string): Promise<Friend[]> {
+  const res = await fetch(`${API_BASE_URL}/friends/pinned`, {
+    headers: headers(token),
+  });
+  if (!res.ok) {
+    throw new Error("Failed to fetch pinned friends");
+  }
+  const data = await res.json();
+  return Array.isArray(data.pinned_friends) ? data.pinned_friends : [];
+}

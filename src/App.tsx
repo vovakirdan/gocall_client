@@ -14,6 +14,7 @@ import { isDesktop } from "./utils/platform";
 import SettingsPage from "./pages/SettingsPage";
 import Loader from "./components/Loader";
 import { WebSocketProvider } from "./context/WebSocketContext";
+import ChatPage from "./pages/ChatPage";
 
 function App() {
   const [apiAvailable, setApiAvailable] = useState<boolean | null>(null);
@@ -76,6 +77,7 @@ function App() {
             <Route path="/friends" element={<FriendsPage />} />
             <Route path="/rooms" element={<RoomsPage />} />
             <Route path="/room/:roomID" element={<RoomPage />} />
+            <Route path="/chat/:friendId" element={<ChatPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/" element={<Navigate to="/home" />} />
           </Route>

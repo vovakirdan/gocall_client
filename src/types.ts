@@ -38,6 +38,7 @@ export interface Friend {
   username: string;
   is_online: boolean;
   user_id: string;
+  is_pinned: boolean;
 }
 
 export interface FriendRequest {
