@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Lock, User, ArrowRight } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { login, register } from "../services/api";
+import { TypingEffect } from "../components/TypingEffect/TypingEffect";
 
 const LoginSignupPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true); // true для логина, false для регистрации
@@ -55,7 +56,19 @@ const LoginSignupPage: React.FC = () => {
               variants={formVariants}
               transition={{ duration: 0.3 }}
             >
-              <h1 className="text-3xl md:text-4xl font-bold mb-8 text-gray-800">
+              <div className="flex flex-col items-center mb-6">
+                <div
+                  className={`text-3xl font-bold ${
+                    isLogin ? "text-blue-600" : "text-green-600"
+                  }`}
+                >
+                  <TypingEffect
+                    init="GoCall is"
+                    words={["fast", "secure", "AI featured", "private", "reliable"]}
+                  />
+                </div>
+              </div>
+              <h1 className="text-3xl md:text-4xl font-bold mb-8 text-gray-800 mt-4">
                 {isLogin ? "Welcome back" : "Create an account"}
               </h1>
               <div className="space-y-4">
@@ -65,6 +78,11 @@ const LoginSignupPage: React.FC = () => {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleSubmit();
+                    }
+                  }}
                 />
                 <InputField
                   icon={Lock}
@@ -72,6 +90,11 @@ const LoginSignupPage: React.FC = () => {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleSubmit();
+                    }
+                  }}
                 />
               </div>
               {error && <p className="text-red-500 mt-4">{error}</p>}
@@ -128,12 +151,14 @@ const InputField = ({
     type,
     value,
     onChange,
+    onKeyDown,
   }: {
     icon: React.ElementType;
     placeholder: string;
     type: string;
     value: string;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   }) => (
     <div className="flex items-center bg-gray-100 p-3 rounded-lg">
       <Icon className="text-gray-500 mr-3" size={20} />
@@ -142,6 +167,7 @@ const InputField = ({
         placeholder={placeholder}
         value={value}
         onChange={onChange}
+        onKeyDown={onKeyDown}
         className="bg-transparent outline-none flex-1 text-gray-800"
       />
     </div>

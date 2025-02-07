@@ -1,0 +1,133 @@
+@use 'sass:list';
+@use 'sass:math';
+
+$boxsize: 20;
+$gutter: 5;
+$x1: $boxsize + $gutter;
+$x2: $x1 * 2;
+$duration: 7;
+
+.loader {
+  // Ставим относительно потока страницы
+  position: relative;
+  // Добавляем автоматический отступ по горизонтали, чтобы центрировать по ширине
+  margin: 1rem auto;
+  // Убираем сдвиг и поворот в центр экрана
+  transform: rotateZ(45deg);
+  
+  width: #{ ( $boxsize * 3 ) + ( $gutter * 2 ) }px;
+  height: #{ ( $boxsize * 3 ) + ( $gutter * 2 ) }px;
+  
+  > div {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: inline-block;
+    width: #{ $boxsize }px;
+    height: #{ $boxsize }px;
+    transform: translate(0px, 0px);
+    animation-duration: #{ $duration }s;
+    animation-iteration-count: infinite;
+    animation-fill-mode: forwards;
+    animation-direction: normal;
+    animation-timing-function: cubic-bezier(0.75, 0, 0, 0.75);
+
+    &:before {
+      content: "";
+      display: inline-block;
+      width: 100%;
+      height: 100%;
+      background-color: #1abc9c;
+      border-radius: 3px;
+      animation-name: background;
+      animation-duration: 30s;
+      animation-iteration-count: infinite;
+      animation-direction: normal;
+      animation-timing-function: ease-in-out;
+    }
+
+    $positions: (
+      "0px, #{ $x1 }px",
+      "0px, #{ $x2 }px",
+      "#{ $x1 }px, #{ $x2 }px",
+      "#{ $x1 }px, #{ $x1 }px",
+      "#{ $x2 }px, #{ $x1 }px",
+      "#{ $x2 }px, 0px",
+      "#{ $x1 }px, 0px"
+    );
+
+    @for $i from 1 through 7 {
+      $part: math.div($duration, list.length($positions));
+      $delay: (7 - ($i * $part)) - math.div($duration, $part);
+
+      &:nth-child(#{$i}) {
+        animation-delay: #{$delay}s;
+        transform: translate(#{ list.nth($positions, $i) });
+        animation-name: position#{$i};
+      }
+    }
+  }
+}
+
+// Генерация ключевых кадров для каждой позиции
+@for $i from 1 through 8 {
+  $positions: (
+    "0px, #{ $x1 }px",
+    "0px, 0px",
+    "#{ $x1 }px, 0px",
+    "#{ $x2 }px, 0px",
+    "#{ $x2 }px, #{ $x1 }px",
+    "#{ $x1 }px, #{ $x1 }px",
+    "#{ $x1 }px, #{ $x2 }px",
+    "0px, #{ $x2 }px",
+    "0px, #{ $x1 }px"
+  );
+
+  @keyframes position#{$i} {
+    $frames: list.length($positions) - 1;
+
+    @for $ii from 0 through $frames {
+      $percent: $ii * math.div(100, $frames);
+      $percent2: $percent + 5;
+      $positionIndex: $ii + 1;
+      $altIndex: $positionIndex - (list.length($positions));
+      $position: if(
+        list.length($positions) < $positionIndex,
+          list.nth($positions, $altIndex),
+          list.nth($positions, $positionIndex)
+      );
+
+      #{$percent}% { transform: translate(#{$position}); }
+      #{$percent2}% { transform: translate(#{$position}); }
+    }
+  }
+}
+
+@keyframes background {
+    10% { background-color: #0175C2; } /* Темно-синий Go */
+    20% { background-color: #00ADD8; } /* Голубой Go */
+    30% { background-color: #F5F5F5; } /* Светло-серый */
+    40% { background-color: #FFDD57; } /* Желтый */
+    50% { background-color: #E44D26; } /* Оранжевый */
+    60% { background-color: #C0392B; } /* Красный */
+    70% { background-color: #1ABC9C; } /* Бирюзовый */
+    80% { background-color: #00ADD8; }
+    90% { background-color: #0175C2; }
+  }
+
+// Дополнительный пример класса, если нужно
+.reference {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  height: 40px;
+  padding: 6px 5px 5px 40px;
+  border: 1px solid rgb(230, 230, 230);
+  border-radius: 3px;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+  text-decoration: none;
+  color: #ea4c89;
+  font-family: helvetica;
+  font-weight: bold;
+  transition: all 0.2s ease-out;
+}
