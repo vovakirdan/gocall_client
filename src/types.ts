@@ -67,3 +67,11 @@ export interface RoomInvite {
   status: "pending" | "accepted" | "declined";
   created_at: string;
 }
+
+export interface IChatMessageResponse {
+  id: number,
+  sender_id: string,
+  receiver_id: string,
+  text: string,
+  created_at: string,
+}
