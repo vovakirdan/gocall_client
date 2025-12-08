@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { getToken, saveToken, removeToken } from "../adapters/token-adapter";
-import { getMe } from "../services/api";
+import { decodeJWT } from "../services/api";
 import { User } from "../types";
 
 interface AuthContextType {
@@ -23,11 +23,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setTokenState(storedToken);
 
       if (storedToken) {
-        try {
-          const userInfo = await getMe(storedToken);
+        const userInfo = decodeJWT(storedToken);
+        if (userInfo) {
           setUser(userInfo);
-        } catch (error) {
-          console.error("Failed to fetch user info:", error);
+        } else {
+          console.error("Failed to decode token");
           removeToken();
           setTokenState(null);
           setUser(null);
@@ -44,11 +44,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setTokenState(newToken);
     if (newToken) {
       await saveToken(newToken);
-      try {
-        const userInfo = await getMe(newToken);
+      const userInfo = decodeJWT(newToken);
+      if (userInfo) {
         setUser(userInfo);
-      } catch (error) {
-        console.error("Failed to fetch user info:", error);
+      } else {
+        console.error("Failed to decode token");
         removeToken();
         setTokenState(null);
         setUser(null);

@@ -2,6 +2,27 @@ import { UserInfo, User } from "../types";
 
 export const API_BASE_URL = "http://localhost:8080/api";
 
+// Decode JWT token to extract user info (no server call needed)
+export function decodeJWT(token: string): User | null {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(atob(base64));
+
+    return {
+      id: payload.user_id,
+      user_id: String(payload.user_id),
+      username: payload.username,
+      name: payload.username,
+      email: '',
+      is_online: true,
+      created_at: new Date().toISOString(),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export const headers = (token?: string) => ({
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -21,18 +42,20 @@ export async function checkAPIStatus(): Promise<boolean> {
 
 export async function validateToken(token: string): Promise<boolean> {
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/validate`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    // Decode JWT locally - no server call needed
+    const user = decodeJWT(token);
+    if (!user) return false;
 
-    if (response.status === 401 || response.status === 403) {
-      return false; // Токен истёк или недействителен
+    // Check expiration (JWT exp claim is in seconds)
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(atob(base64));
+
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      return false; // Token expired
     }
 
-    return response.ok;
+    return true;
   } catch (error) {
     console.error("Token validation error:", error);
     return false;
@@ -41,7 +64,7 @@ export async function validateToken(token: string): Promise<boolean> {
   
 export async function login(username: string, password: string): Promise<string> {
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    const response = await fetch(`${API_BASE_URL}/login`, {
       method: "POST",
       headers: headers(),
       body: JSON.stringify({ username, password }),
@@ -61,7 +84,7 @@ export async function login(username: string, password: string): Promise<string>
 
 export async function register(username: string, password: string): Promise<string> {
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+    const response = await fetch(`${API_BASE_URL}/register`, {
       method: "POST",
       headers: headers(),
       body: JSON.stringify({ username, password }),

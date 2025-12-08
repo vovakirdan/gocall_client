@@ -19,7 +19,7 @@ import { MessageCircle, PinOff, Pin, Trash2, Video } from "lucide-react";
 import { useCall } from "../context/CallContext";
 
 const FriendsPage: React.FC = () => {
-  const { token, user } = useAuth();
+  const { token } = useAuth();
   const navigate = useNavigate();
   const { initiateCall, state: callState } = useCall();
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -113,14 +113,14 @@ const FriendsPage: React.FC = () => {
   };
 
   // Обработчик отправки заявки другу (из результатов поиска)
-  const handleSendFriendRequest = async (username: string) => {
+  const handleSendFriendRequest = async (targetUser: { id: number; username: string }) => {
     if (!token) return;
     try {
-      await requestFriend(username, token);
-      setSuccess(`Friend request sent to ${username}`);
+      await requestFriend(targetUser.id, token);
+      setSuccess(`Friend request sent to ${targetUser.username}`);
       setTimeout(() => setSuccess(""), 3000);
       // Удаляем отправленный элемент из результатов поиска
-      setSearchResults((prev) => prev.filter((foundUser) => foundUser.username !== username && foundUser.id !== user?.id));
+      setSearchResults((prev) => prev.filter((foundUser) => foundUser.id !== targetUser.id));
     } catch (err: any) {
       setError(err.message || "Failed to send friend request");
     }
@@ -261,7 +261,7 @@ const FriendsPage: React.FC = () => {
                 className="flex items-center justify-between p-3 rounded-lg bg-white shadow-sm"
               >
                 <span>{user.username}</span>
-                <Button variant="primary" size="sm" onClick={() => handleSendFriendRequest(user.username)}>
+                <Button variant="primary" size="sm" onClick={() => handleSendFriendRequest(user)}>
                   Отправить заявку
                 </Button>
               </div>

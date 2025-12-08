@@ -73,7 +73,7 @@ interface WebSocketProviderProps {
 
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   children,
-  serverUrl = 'ws://localhost:8080',
+  serverUrl = 'ws://localhost:8080/ws',
 }) => {
   const { token, user } = useAuth();
   const clientRef = useRef<WirechatClient | null>(null);
@@ -86,11 +86,18 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   const [userJoined, setUserJoined] = useState<EventUserJoined | null>(null);
   const [userLeft, setUserLeft] = useState<EventUserLeft | null>(null);
 
+  // Store username in ref to avoid re-creating handlers
+  const usernameRef = useRef<string>('');
+  usernameRef.current = user?.username || '';
+
   // Create and connect client when authenticated
   useEffect(() => {
+    console.log('[WS] useEffect triggered', { token: !!token, user: !!user, hasClient: !!clientRef.current });
+
     if (!token || !user) {
       // Disconnect if logged out
       if (clientRef.current) {
+        console.log('[WS] Disconnecting - no token or user');
         clientRef.current.disconnect();
         clientRef.current = null;
       }
@@ -98,8 +105,15 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       return;
     }
 
+    // Don't reconnect if already connected with same token
+    if (clientRef.current) {
+      console.log('[WS] Already connected, skipping');
+      return;
+    }
+
     // Create new client
-    const client = createWirechatClient(serverUrl, token, user.username || user.user_id);
+    console.log('[WS] Creating new client');
+    const client = createWirechatClient(serverUrl, token, user.username || String(user.id));
     clientRef.current = client;
 
     // Setup event handlers
@@ -120,7 +134,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
           user: data.user,
           text: data.text,
           timestamp: data.ts,
-          isLocal: data.user === user.username,
+          isLocal: data.user === usernameRef.current,
         };
 
         // Add to global messages
@@ -141,7 +155,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
           user: m.user,
           text: m.text,
           timestamp: m.ts,
-          isLocal: m.user === user.username,
+          isLocal: m.user === usernameRef.current,
         }));
 
         // Set room messages from history
@@ -182,7 +196,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       client.disconnect();
       clientRef.current = null;
     };
-  }, [token, user, serverUrl]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, serverUrl]);
 
   // === Actions ===
 

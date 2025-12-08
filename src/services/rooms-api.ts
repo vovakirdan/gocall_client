@@ -40,9 +40,9 @@ export async function declineRoomInvite(inviteId: number, token: string): Promis
   }
 }
 
-/** Получаем комнаты, где вы являетесь создателем (GET /rooms/mine) */
+/** Получаем комнаты пользователя (GET /rooms) */
 export async function fetchMyRooms(token: string): Promise<Room[]> {
-  const response = await fetch(`${API_BASE_URL}/rooms/mine`, {
+  const response = await fetch(`${API_BASE_URL}/rooms`, {
     method: "GET",
     headers: headers(token),
   });
@@ -53,14 +53,13 @@ export async function fetchMyRooms(token: string): Promise<Room[]> {
   return Array.isArray(data.rooms) ? data.rooms : [];
 }
 
-/** Создание комнаты (POST /rooms/create) */
+/** Создание комнаты (POST /rooms) */
 export async function createRoom(name: string, token: string): Promise<Room> {
   const type = "public"; // можно расширить по необходимости
-  const password = "";
-  const response = await fetch(`${API_BASE_URL}/rooms/create`, {
+  const response = await fetch(`${API_BASE_URL}/rooms`, {
     method: "POST",
     headers: headers(token),
-    body: JSON.stringify({ name, type, password }),
+    body: JSON.stringify({ name, type }),
   });
   if (!response.ok) {
     const errorData = await response.json();
@@ -68,11 +67,11 @@ export async function createRoom(name: string, token: string): Promise<Room> {
   }
   const data = await response.json();
   return {
-    room_id: data.roomID,
+    room_id: String(data.id),
     name: data.name,
     type: data.type,
-    user_id: data.userID,
-    created_at: new Date().toISOString(),
+    user_id: String(data.owner_id),
+    created_at: data.created_at,
   };
 }
 
@@ -88,18 +87,10 @@ export async function deleteRoom(roomID: string, token: string): Promise<void> {
   }
 }
 
-/** Получаем приглашённые комнаты (GET /rooms/invites) */
-export async function fetchInvitedRooms(token: string): Promise<Room[]> {
-  const response = await fetch(`${API_BASE_URL}/rooms/invites`, {
-    method: "GET",
-    headers: headers(token),
-  });
-  if (!response.ok) {
-    const errorResponse = await response.json();
-    throw new Error(errorResponse.error || "Failed to fetch invited rooms");
-  }
-  const data = await response.json();
-  return Array.isArray(data.invites) ? data.invites : [];
+/** Получаем приглашённые комнаты - not implemented in WireChat */
+export async function fetchInvitedRooms(_token: string): Promise<Room[]> {
+  // Room invites not implemented in WireChat server - return empty array
+  return [];
 }
 
 /** Приглашение друга в комнату (POST /rooms/invite) */

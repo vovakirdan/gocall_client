@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Home, Users, Video, Settings } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Friend } from "../types";
 import { fetchPinnedFriends } from "../services/friends-api";
 import { MessageCircle } from "lucide-react";
@@ -53,13 +53,13 @@ const AppSidebar: React.FC = () => {
         <ul>
           {menuItems.map((item) => (
             <li key={item.title} className="mb-2">
-              <a
-                href={item.url}
+              <Link
+                to={item.url}
                 className="flex items-center gap-2 hover:text-blue-500"
               >
                 <item.icon className="h-5 w-5" />
                 <span>{item.title}</span>
-              </a>
+              </Link>
             </li>
           ))}
         </ul>
