@@ -23,6 +23,23 @@ const LoginSignupPage: React.FC = () => {
     try {
         setError("");
         setSuccessMessage("");
+
+        // Client-side validation
+        if (!isLogin) {
+          if (username.length < 3) {
+            setError("Username must be at least 3 characters");
+            return;
+          }
+          if (username.length > 32) {
+            setError("Username must be at most 32 characters");
+            return;
+          }
+          if (password.length < 6) {
+            setError("Password must be at least 6 characters");
+            return;
+          }
+        }
+
         if (isLogin) {
             const token = await login(username, password);
             await setToken(token);
