@@ -20,6 +20,14 @@ import {
   ParticipantInfo,
   createLiveKitClient,
 } from '../services/livekit';
+import {
+  createDirectCall,
+  createRoomCall,
+  joinCall as joinCallApi,
+  endCall as endCallApi,
+  CallResponse,
+} from '../services/calls-api';
+import { useAuth } from './AuthContext';
 
 // === Types ===
 
@@ -253,8 +261,10 @@ export const CallProvider: React.FC<CallProviderProps> = ({
   wirechatClient,
 }) => {
   const [state, dispatch] = useReducer(callReducer, initialState);
+  const { token } = useAuth();
   const livekitClientRef = useRef<LiveKitClient | null>(null);
   const pendingJoinInfoRef = useRef<EventCallJoinInfo | null>(null);
+  const currentCallIdRef = useRef<string | null>(null);
 
   // Initialize LiveKit client
   useEffect(() => {
@@ -350,9 +360,17 @@ export const CallProvider: React.FC<CallProviderProps> = ({
         roomName: joinInfo.room_name,
       });
 
-      // Enable media after connecting
-      await livekitClientRef.current.enableMic();
-      await livekitClientRef.current.enableCamera();
+      // Try to enable media after connecting (may fail if permission denied)
+      try {
+        await livekitClientRef.current.enableMic();
+      } catch (e) {
+        console.warn('[CallContext] Could not enable mic:', e);
+      }
+      try {
+        await livekitClientRef.current.enableCamera();
+      } catch (e) {
+        console.warn('[CallContext] Could not enable camera:', e);
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to connect to call';
       dispatch({ type: 'SET_ERROR', payload: message });
@@ -369,21 +387,51 @@ export const CallProvider: React.FC<CallProviderProps> = ({
   // === Actions ===
 
   const initiateCall = useCallback(
-    (type: CallType, targetId: number, roomName?: string) => {
-      if (!wirechatClient) {
-        dispatch({ type: 'SET_ERROR', payload: 'Not connected to server' });
+    async (type: CallType, targetId: number, roomName?: string) => {
+      console.log('[CallContext] initiateCall:', { type, targetId, roomName, hasToken: !!token });
+
+      if (!token) {
+        console.error('[CallContext] No auth token!');
+        dispatch({ type: 'SET_ERROR', payload: 'Not authenticated' });
         return;
       }
 
       dispatch({ type: 'INITIATE_CALL', payload: { callType: type, targetId, roomName } });
 
-      if (type === 'direct') {
-        wirechatClient.inviteDirectCall(targetId);
-      } else {
-        wirechatClient.inviteRoomCall(targetId);
+      try {
+        let call: CallResponse;
+        if (type === 'direct') {
+          console.log('[CallContext] Creating direct call to user:', targetId);
+          call = await createDirectCall(targetId, token);
+        } else {
+          console.log('[CallContext] Creating room call for room:', targetId);
+          call = await createRoomCall(targetId, token);
+        }
+
+        console.log('[CallContext] Call created:', call);
+        currentCallIdRef.current = call.id;
+
+        // Now join the call to get LiveKit credentials
+        console.log('[CallContext] Joining call:', call.id);
+        const joinInfo = await joinCallApi(call.id, token);
+        console.log('[CallContext] Got join info:', joinInfo);
+
+        // Connect to LiveKit
+        await connectToLiveKit({
+          call_id: call.id,
+          url: joinInfo.url,
+          token: joinInfo.token,
+          room_name: joinInfo.room_name,
+          identity: joinInfo.identity,
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to create call';
+        console.error('[CallContext] Call creation failed:', message);
+        dispatch({ type: 'SET_ERROR', payload: message });
+        dispatch({ type: 'RESET' });
       }
     },
-    [wirechatClient]
+    [token, connectToLiveKit]
   );
 
   const acceptCall = useCallback(async () => {
@@ -406,16 +454,25 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     [wirechatClient, state.callId]
   );
 
-  const endCall = useCallback(() => {
-    if (!wirechatClient || !state.callId) {
-      dispatch({ type: 'RESET' });
-      return;
+  const endCall = useCallback(async () => {
+    const callId = state.callId || currentCallIdRef.current;
+
+    // Disconnect from LiveKit first
+    await disconnectLiveKit();
+
+    // End call via REST API if we have a call ID and token
+    if (callId && token) {
+      try {
+        await endCallApi(callId, token);
+        console.log('[CallContext] Call ended via API');
+      } catch (err) {
+        console.warn('[CallContext] Failed to end call via API:', err);
+      }
     }
 
-    wirechatClient.endCall(state.callId);
-    disconnectLiveKit();
+    currentCallIdRef.current = null;
     dispatch({ type: 'RESET' });
-  }, [wirechatClient, state.callId, disconnectLiveKit]);
+  }, [state.callId, token, disconnectLiveKit]);
 
   const toggleMic = useCallback(async () => {
     if (!livekitClientRef.current) return;

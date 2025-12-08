@@ -376,7 +376,7 @@ export class WirechatClient {
 
   private send(type: string, data?: unknown): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      console.warn('WebSocket not open, cannot send message');
+      console.warn('[WS] WebSocket not open, cannot send message. State:', this.ws?.readyState);
       return;
     }
 
@@ -385,6 +385,7 @@ export class WirechatClient {
       msg.data = data;
     }
 
+    console.log('[WS] Sending:', JSON.stringify(msg));
     this.ws.send(JSON.stringify(msg));
   }
 
