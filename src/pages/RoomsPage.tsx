@@ -28,6 +28,9 @@ const RoomsPage: React.FC = () => {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [inviteModalRoom, setInviteModalRoom] = useState<string | null>(null);
 
+  // Error state
+  const [error, setError] = useState<string | null>(null);
+
   // Загружаем данные (комнаты и друзей) при монтировании компонента
   useEffect(() => {
     const loadData = async () => {
@@ -37,9 +40,9 @@ const RoomsPage: React.FC = () => {
         const invited = await fetchInvitedRooms(token);
         const fetchedFriends = await fetchFriends(token);
 
-        // Отмечаем комнаты: свои — isOwner = true, приглашённые — false
-        const markedOwnRooms = ownRooms.map((room) => ({ ...room, isOwner: true }));
-        const markedInvitedRooms = invited.map((room) => ({ ...room, isOwner: false }));
+        // Отмечаем комнаты: свои — is_owner = true, приглашённые — false
+        const markedOwnRooms = ownRooms.map((room) => ({ ...room, is_owner: true }));
+        const markedInvitedRooms = invited.map((room) => ({ ...room, is_owner: false }));
 
         setRooms(markedOwnRooms);
         setInvitedRooms(markedInvitedRooms);
@@ -57,6 +60,7 @@ const RoomsPage: React.FC = () => {
   // Функция создания новой комнаты
   const handleCreateRoom = async () => {
     if (!newRoomName.trim() || !token) return;
+    setError(null);
     try {
       const newRoom = await createRoom(newRoomName, token);
       // Отмечаем как свою комнату
@@ -65,6 +69,7 @@ const RoomsPage: React.FC = () => {
       setNewRoomName("");
     } catch (error: any) {
       console.error("Failed to create room:", error.message);
+      setError(error.message || "Не удалось создать комнату");
     }
   };
 
@@ -120,8 +125,12 @@ const RoomsPage: React.FC = () => {
   };
 
   // Функция присоединения к комнате (навигация к RoomPage)
-  const handleJoinRoom = (roomId: string) => {
-    navigate(`/room/${roomId}`);
+  // Use room name in URL since WebSocket protocol uses names, not IDs
+  // Pass room_id in state for call functionality
+  const handleJoinRoom = (room: Room) => {
+    navigate(`/room/${encodeURIComponent(room.name)}`, {
+      state: { roomId: parseInt(room.room_id, 10) }
+    });
   };
 
   // Переключение отображения контекстного меню для комнаты
@@ -160,6 +169,13 @@ const RoomsPage: React.FC = () => {
         </Button>
       </div>
 
+      {/* Error display */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          {error}
+        </div>
+      )}
+
       {/* Отображение списка комнат */}
       {allRooms.length === 0 ? (
         <p className="text-gray-500">
@@ -181,7 +197,7 @@ const RoomsPage: React.FC = () => {
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => handleJoinRoom(room.room_id)}
+                  onClick={() => handleJoinRoom(room)}
                 >
                   Присоединиться
                 </Button>

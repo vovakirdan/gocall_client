@@ -92,12 +92,9 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
   // Create and connect client when authenticated
   useEffect(() => {
-    console.log('[WS] useEffect triggered', { token: !!token, user: !!user, hasClient: !!clientRef.current });
-
     if (!token || !user) {
       // Disconnect if logged out
       if (clientRef.current) {
-        console.log('[WS] Disconnecting - no token or user');
         clientRef.current.disconnect();
         clientRef.current = null;
       }
@@ -107,12 +104,10 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
     // Don't reconnect if already connected with same token
     if (clientRef.current) {
-      console.log('[WS] Already connected, skipping');
       return;
     }
 
     // Create new client
-    console.log('[WS] Creating new client');
     const client = createWirechatClient(serverUrl, token, user.username || String(user.id));
     clientRef.current = client;
 

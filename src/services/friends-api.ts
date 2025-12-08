@@ -11,7 +11,8 @@ export async function fetchFriendRequests(token: string): Promise<FriendRequest[
     throw new Error("Failed to fetch friend requests");
   }
   const data = await response.json();
-  return Array.isArray(data.requests) ? data.requests : [];
+  // Server may return array directly or { requests: [...] }
+  return Array.isArray(data) ? data : (Array.isArray(data.requests) ? data.requests : []);
 }
 
 // Функция для принятия заявки (POST /friends/:userId/accept)
@@ -61,7 +62,8 @@ export async function fetchFriends(token: string): Promise<Friend[]> {
     throw new Error("Failed to fetch friends");
   }
   const data = await response.json();
-  return Array.isArray(data.friends) ? data.friends : []; // предполагается, что сервер вернёт { friends: [...] }
+  // Server may return array directly or { friends: [...] }
+  return Array.isArray(data) ? data : (Array.isArray(data.friends) ? data.friends : []);
 }
 
 // Функция для добавления друга

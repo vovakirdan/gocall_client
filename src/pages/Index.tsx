@@ -12,10 +12,12 @@ import {
 import { fetchFriends } from "../services/friends-api";
 import { Room, Friend } from "../types";
 import { useCall } from "../context/CallContext";
+import { useNavigate } from "react-router-dom";
 
 const Index: React.FC = () => {
   const { token } = useAuth();
   const { initiateCall, state: callState } = useCall();
+  const navigate = useNavigate();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [invitedRooms, setInvitedRooms] = useState<Room[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -33,8 +35,8 @@ const Index: React.FC = () => {
         const fetchedFriends = await fetchFriends(token);
 
         // Помечаем, какие комнаты созданы пользователем
-        const markedOwnRooms = ownRooms.map((room) => ({ ...room, isOwner: true }));
-        const markedInvitedRooms = invited.map((room) => ({ ...room, isOwner: false }));
+        const markedOwnRooms = ownRooms.map((room) => ({ ...room, is_owner: true }));
+        const markedInvitedRooms = invited.map((room) => ({ ...room, is_owner: false }));
 
         setRooms(markedOwnRooms);
         setInvitedRooms(markedInvitedRooms);
@@ -99,9 +101,11 @@ const Index: React.FC = () => {
     }
   };
 
-  // Обработка присоединения к комнате (здесь можно расширить логику навигации)
-  const handleJoinRoom = (roomId: string) => {
-    alert(`Присоединиться к комнате ${roomId}`);
+  // Обработка присоединения к комнате - navigate using room name
+  const handleJoinRoom = (room: Room) => {
+    navigate(`/room/${encodeURIComponent(room.name)}`, {
+      state: { roomId: parseInt(room.room_id, 10) }
+    });
   };
 
   // Переключение контекстного меню для комнаты
@@ -158,7 +162,7 @@ const Index: React.FC = () => {
                     <Button
                       variant="secondary"
                       size="sm"
-                      onClick={() => handleJoinRoom(room.room_id)}
+                      onClick={() => handleJoinRoom(room)}
                     >
                       Присоединиться
                     </Button>

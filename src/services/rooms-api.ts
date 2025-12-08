@@ -50,7 +50,15 @@ export async function fetchMyRooms(token: string): Promise<Room[]> {
     throw new Error("Failed to fetch rooms");
   }
   const data = await response.json();
-  return Array.isArray(data.rooms) ? data.rooms : [];
+  // Server returns array directly, or { rooms: [...] }
+  const rooms = Array.isArray(data) ? data : (Array.isArray(data.rooms) ? data.rooms : []);
+  return rooms.map((r: { id: number; name: string; type: string; owner_id: number | null; created_at: string }) => ({
+    room_id: String(r.id),
+    user_id: r.owner_id ? String(r.owner_id) : '',
+    name: r.name,
+    type: r.type,
+    created_at: r.created_at,
+  }));
 }
 
 /** Создание комнаты (POST /rooms) */
@@ -84,6 +92,21 @@ export async function deleteRoom(roomID: string, token: string): Promise<void> {
   if (!response.ok) {
     const errorData = await response.json();
     throw new Error(errorData.error || "Failed to delete room");
+  }
+}
+
+/** Join room as member (POST /rooms/:id/join) - required for calls */
+export async function joinRoomAsMember(roomID: string, token: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/rooms/${roomID}/join`, {
+    method: "POST",
+    headers: headers(token),
+  });
+  if (!response.ok) {
+    // Ignore "already a member" errors
+    const errorData = await response.json();
+    if (!errorData.error?.includes("already")) {
+      throw new Error(errorData.error || "Failed to join room");
+    }
   }
 }
 

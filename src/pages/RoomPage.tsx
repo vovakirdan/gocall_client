@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Mic,
   MicOff,
@@ -18,6 +18,8 @@ import {
 import { motion } from 'framer-motion';
 import { useCall } from '../context/CallContext';
 import { useWebSocketContext } from '../context/WebSocketContext';
+import { useAuth } from '../context/AuthContext';
+import { joinRoomAsMember } from '../services/rooms-api';
 import { VideoTrack } from 'livekit-client';
 import { ParticipantInfo } from '../services/livekit';
 
@@ -121,6 +123,7 @@ const ControlButton: React.FC<ControlButtonProps> = ({
 export default function RoomPage(): JSX.Element {
   const { roomID } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const {
     state: callState,
     endCall,
@@ -131,27 +134,37 @@ export default function RoomPage(): JSX.Element {
     livekitClient,
   } = useCall();
   const { joinRoom, leaveRoom, isConnected } = useWebSocketContext();
+  const { token } = useAuth();
 
-  // Join the chat room when entering
+  // Decode the room name from URL (it's the room name, not ID)
+  const roomName = roomID ? decodeURIComponent(roomID) : '';
+  // Get numeric room ID from navigation state (for calls)
+  const numericRoomId = (location.state as { roomId?: number })?.roomId;
+
+  // Join as member via REST API (required for calls) and WebSocket (for chat)
   useEffect(() => {
-    if (roomID && isConnected) {
-      joinRoom(roomID);
+    if (!roomName || !isConnected) return;
+
+    // Join WebSocket room for chat
+    joinRoom(roomName);
+
+    // Also join as member via REST API (required for calls)
+    if (numericRoomId && token) {
+      joinRoomAsMember(String(numericRoomId), token).catch((err) => {
+        console.warn('Failed to join room as member:', err.message);
+      });
     }
 
     return () => {
-      if (roomID) {
-        leaveRoom(roomID);
+      if (roomName) {
+        leaveRoom(roomName);
       }
     };
-  }, [roomID, isConnected, joinRoom, leaveRoom]);
+  }, [roomName, numericRoomId, token, isConnected, joinRoom, leaveRoom]);
 
   const handleStartCall = () => {
-    if (roomID) {
-      // Assuming roomID can be parsed to number for room-based calls
-      const roomIdNum = parseInt(roomID, 10);
-      if (!isNaN(roomIdNum)) {
-        initiateCall('room', roomIdNum, roomID);
-      }
+    if (numericRoomId && roomName) {
+      initiateCall('room', numericRoomId, roomName);
     }
   };
 
@@ -191,7 +204,7 @@ export default function RoomPage(): JSX.Element {
           >
             <ArrowLeft className="w-5 h-5 text-white" />
           </button>
-          <h1 className="text-lg font-semibold text-white">Room: {roomID}</h1>
+          <h1 className="text-lg font-semibold text-white">Room: {roomName}</h1>
         </div>
 
         <div className="flex items-center gap-4">
@@ -201,7 +214,7 @@ export default function RoomPage(): JSX.Element {
               <span className="text-sm">{participants.length}</span>
             </div>
           )}
-          {!isInCall && (
+          {!isInCall && numericRoomId && (
             <button
               onClick={handleStartCall}
               className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 rounded-lg transition-colors"
@@ -286,13 +299,17 @@ export default function RoomPage(): JSX.Element {
               <p className="text-gray-400 mb-6">
                 Start a video call to connect with others in this room
               </p>
-              <button
-                onClick={handleStartCall}
-                className="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary-hover rounded-lg transition-colors mx-auto"
-              >
-                <Video className="w-5 h-5 text-white" />
-                <span className="text-white font-medium">Start Video Call</span>
-              </button>
+              {numericRoomId ? (
+                <button
+                  onClick={handleStartCall}
+                  className="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary-hover rounded-lg transition-colors mx-auto"
+                >
+                  <Video className="w-5 h-5 text-white" />
+                  <span className="text-white font-medium">Start Video Call</span>
+                </button>
+              ) : (
+                <p className="text-gray-500 text-sm">Video calls not available (missing room data)</p>
+              )}
             </div>
           </div>
         )}
