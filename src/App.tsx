@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import LoginSignupPage from "./pages/LoginSignupPage";
-// Заменяем Home на новый Index:
 import Index from "./pages/Index";
 import RoomPage from "./pages/RoomPage";
 import FriendsPage from "./pages/FriendsPage";
@@ -13,8 +12,29 @@ import { AuthProvider } from "./context/AuthContext";
 import { isDesktop } from "./utils/platform";
 import SettingsPage from "./pages/SettingsPage";
 import Loader from "./components/Loader";
-import { WebSocketProvider } from "./context/WebSocketContext";
+import { WebSocketProvider, useWebSocketContext } from "./context/WebSocketContext";
+import { CallProvider } from "./context/CallContext";
+import {
+  IncomingCallModal,
+  OutgoingCallModal,
+  ActiveCallView,
+} from "./components/Call";
 import ChatPage from "./pages/ChatPage";
+
+// Inner component that has access to WebSocket context
+const AppWithCallProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { wirechatClient } = useWebSocketContext();
+
+  return (
+    <CallProvider wirechatClient={wirechatClient}>
+      {children}
+      {/* Global call modals - shown on any page */}
+      <IncomingCallModal />
+      <OutgoingCallModal />
+      <ActiveCallView />
+    </CallProvider>
+  );
+};
 
 function App() {
   const [apiAvailable, setApiAvailable] = useState<boolean | null>(null);
@@ -35,9 +55,9 @@ function App() {
 
     const interval = setInterval(() => {
       checkAPI();
-    }, apiAvailable ? 60000 : 10000); // Проверяем API каждые 60 секунд если он доступен, иначе каждые 10 секунд
+    }, apiAvailable ? 60000 : 10000);
 
-    return () => clearInterval(interval); // Очищаем интервал при размонтировании
+    return () => clearInterval(interval);
   }, []);
 
   if (apiAvailable === null) {
@@ -68,21 +88,23 @@ function App() {
   return (
     <AuthProvider>
       <WebSocketProvider>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<LoginSignupPage />} />
-          {/* Защищённые маршруты внутри общего Layout */}
-          <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-            <Route path="/home" element={<Index />} />
-            <Route path="/friends" element={<FriendsPage />} />
-            <Route path="/rooms" element={<RoomsPage />} />
-            <Route path="/room/:roomID" element={<RoomPage />} />
-            <Route path="/chat/:friendId" element={<ChatPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/" element={<Navigate to="/home" />} />
-          </Route>
-        </Routes>
-      </Router>
+        <AppWithCallProvider>
+          <Router>
+            <Routes>
+              <Route path="/login" element={<LoginSignupPage />} />
+              {/* Protected routes inside common Layout */}
+              <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                <Route path="/home" element={<Index />} />
+                <Route path="/friends" element={<FriendsPage />} />
+                <Route path="/rooms" element={<RoomsPage />} />
+                <Route path="/room/:roomID" element={<RoomPage />} />
+                <Route path="/chat/:friendId" element={<ChatPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/" element={<Navigate to="/home" />} />
+              </Route>
+            </Routes>
+          </Router>
+        </AppWithCallProvider>
       </WebSocketProvider>
     </AuthProvider>
   );

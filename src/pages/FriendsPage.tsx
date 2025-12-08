@@ -15,11 +15,13 @@ import {
 import { FriendRequest, Friend, UserInfo } from "../types";
 import { getUserInfo } from "../services/api";
 import { useNavigate } from "react-router-dom";
-import { MessageCircle, PinOff, Pin, Trash2 } from "lucide-react";
+import { MessageCircle, PinOff, Pin, Trash2, Video } from "lucide-react";
+import { useCall } from "../context/CallContext";
 
 const FriendsPage: React.FC = () => {
   const { token, user } = useAuth();
   const navigate = useNavigate();
+  const { initiateCall, state: callState } = useCall();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -219,6 +221,16 @@ const FriendsPage: React.FC = () => {
     navigate(`/chat/${friend.user_id}`);
   };
 
+  // Обработчик видеозвонка
+  const handleVideoCall = (friend: Friend) => {
+    // Extract numeric user ID from friend
+    const userId = friend.id;
+    initiateCall('direct', userId, friend.username);
+  };
+
+  // Check if we can make calls
+  const canMakeCall = callState.status === 'idle' || callState.status === 'ended';
+
   return (
     <div className="min-h-screen flex flex-col p-6">
       <h1 className="text-2xl font-bold mb-4">Друзья</h1>
@@ -299,6 +311,15 @@ const FriendsPage: React.FC = () => {
               <div className="flex gap-2">
                 <Button variant="primary" size="sm" onClick={() => goToChat(friend)}>
                   <MessageCircle className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleVideoCall(friend)}
+                  disabled={!canMakeCall}
+                  title={canMakeCall ? "Video call" : "Already in a call"}
+                >
+                  <Video className="h-5 w-5" />
                 </Button>
                 {friend.is_pinned ? (
                   <Button variant="ghost" size="sm" onClick={() => handleUnpin(friend)}>

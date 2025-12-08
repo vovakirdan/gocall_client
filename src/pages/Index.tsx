@@ -11,9 +11,11 @@ import {
 } from "../services/rooms-api";
 import { fetchFriends } from "../services/friends-api";
 import { Room, Friend } from "../types";
+import { useCall } from "../context/CallContext";
 
 const Index: React.FC = () => {
   const { token } = useAuth();
+  const { initiateCall, state: callState } = useCall();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [invitedRooms, setInvitedRooms] = useState<Room[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -216,21 +218,29 @@ const Index: React.FC = () => {
             <p className="text-gray-500">Нет друзей. Добавьте новых друзей!</p>
           ) : (
             <div className="grid gap-2">
-              {friends.map((friend) => (
-                <div
-                  key={friend.id}
-                  className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-green-500" />
-                    <span>{friend.username}</span>
+              {friends.map((friend) => {
+                const canMakeCall = callState.status === 'idle' || callState.status === 'ended';
+                return (
+                  <div
+                    key={friend.id}
+                    className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-2 h-2 rounded-full ${friend.is_online ? 'bg-green-500' : 'bg-gray-400'}`} />
+                      <span>{friend.username}</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={!canMakeCall}
+                      onClick={() => initiateCall('direct', friend.id, friend.username)}
+                    >
+                      <Video className="h-4 w-4 mr-2" />
+                      Call
+                    </Button>
                   </div>
-                  <Button variant="ghost" size="sm">
-                    <Video className="h-4 w-4 mr-2" />
-                    Call
-                  </Button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>
