@@ -247,8 +247,10 @@ export class LiveKitClient {
   ): ParticipantInfo {
     const screenSharePublication = participant.getTrackPublication(Track.Source.ScreenShare);
     const cameraPublication = participant.getTrackPublication(Track.Source.Camera);
-    const videoPublication = screenSharePublication || cameraPublication;
-    const videoTrack = videoPublication?.track;
+    const screenShareTrack = screenSharePublication?.track;
+    const cameraTrack = cameraPublication?.track;
+    const videoTrack = screenShareTrack || cameraTrack;
+    const videoPublication = screenShareTrack ? screenSharePublication : cameraPublication;
     const audioTrack = participant.getTrackPublication(Track.Source.Microphone)?.track;
 
     return {
@@ -372,16 +374,14 @@ export class LiveKitClient {
     }
 
     try {
-      const screenTrack = await this.room.localParticipant.setScreenShareEnabled(true);
-      if (screenTrack) {
-        // setScreenShareEnabled returns LocalTrackPublication, extract the track
-        const track = (screenTrack as unknown as { track?: LocalVideoTrack }).track;
-        if (track) {
-          this.screenShareTrack = track;
-        }
-        this.isScreenSharing = true;
-        this.handlers.onScreenShareStarted?.();
-      }
+      const publication = await this.room.localParticipant.setScreenShareEnabled(true);
+      const publicationTrack = publication?.track as LocalVideoTrack | undefined;
+      const fallbackTrack = this.room.localParticipant.getTrackPublication(Track.Source.ScreenShare)
+        ?.track as LocalVideoTrack | undefined;
+
+      this.screenShareTrack = publicationTrack || fallbackTrack || null;
+      this.isScreenSharing = true;
+      this.handlers.onScreenShareStarted?.();
     } catch (err) {
       this.handleError(err instanceof Error ? err : new Error(String(err)));
       throw err;
@@ -458,7 +458,16 @@ export class LiveKitClient {
   }
 
   getLocalVideoTrack(): LocalVideoTrack | null {
-    return this.screenShareTrack || this.localVideoTrack;
+    if (!this.room) {
+      return this.screenShareTrack || this.localVideoTrack;
+    }
+
+    const screenTrack = this.room.localParticipant.getTrackPublication(Track.Source.ScreenShare)
+      ?.track as LocalVideoTrack | undefined;
+    const cameraTrack = this.room.localParticipant.getTrackPublication(Track.Source.Camera)
+      ?.track as LocalVideoTrack | undefined;
+
+    return screenTrack || cameraTrack || this.screenShareTrack || this.localVideoTrack;
   }
 
   getLocalAudioTrack(): LocalAudioTrack | null {
