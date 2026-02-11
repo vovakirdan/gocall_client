@@ -1,4 +1,5 @@
-import { API_BASE_URL, headers } from "./api";
+import { headers } from "./api";
+import { API_BASE_URL } from "./config";
 
 export interface CallResponse {
   id: string;
@@ -64,7 +65,7 @@ export async function joinCall(callId: string, token: string): Promise<JoinCallR
 /** End a call */
 export async function endCall(callId: string, token: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/calls/${callId}/end`, {
-    method: "POST",
+    method: "PUT",
     headers: headers(token),
   });
   if (!response.ok) {

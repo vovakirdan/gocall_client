@@ -237,7 +237,7 @@ const Index: React.FC = () => {
                       variant="ghost"
                       size="sm"
                       disabled={!canMakeCall}
-                      onClick={() => initiateCall('direct', friend.id, friend.username)}
+                      onClick={() => initiateCall('direct', friend.friend_user_id, friend.username)}
                     >
                       <Video className="h-4 w-4 mr-2" />
                       Call

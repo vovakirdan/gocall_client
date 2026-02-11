@@ -4,18 +4,18 @@
  */
 
 import React, { useEffect, useState, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Send, Video, Loader2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useWebSocketContext } from "../context/WebSocketContext";
 import { useCall } from "../context/CallContext";
-import { getUserInfo } from "../services/api";
 import { getOrCreateDirectRoom } from "../services/rooms-api";
 import Button from "../components/Button";
 
 const ChatPage: React.FC = () => {
   const { friendId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, token } = useAuth();
   const {
     joinRoom,
@@ -39,7 +39,9 @@ const ChatPage: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Get or create direct room and fetch friend info
+  const state = location.state as { friendUsername?: string } | null;
+
+  // Get or create direct room
   useEffect(() => {
     const initChat = async () => {
       if (!token || !friendId) return;
@@ -48,13 +50,16 @@ const ChatPage: React.FC = () => {
       setError(null);
 
       try {
-        // Fetch friend info
-        const userInfo = await getUserInfo(token, friendId);
-        setFriendUsername(userInfo.username || "Unknown");
-        setFriendUserId(userInfo.id);
+        const targetUserID = Number(friendId);
+        if (!Number.isFinite(targetUserID) || targetUserID <= 0) {
+          throw new Error("Invalid friend ID");
+        }
+
+        setFriendUserId(targetUserID);
+        setFriendUsername(state?.friendUsername || `user-${targetUserID}`);
 
         // Get or create direct room
-        const directRoom = await getOrCreateDirectRoom(userInfo.id, token);
+        const directRoom = await getOrCreateDirectRoom(targetUserID, token);
         const roomIdentifier = directRoom.name || `direct-${directRoom.id}`;
         setRoomName(roomIdentifier);
 
@@ -72,13 +77,15 @@ const ChatPage: React.FC = () => {
 
     initChat();
 
-    // Cleanup - leave room when component unmounts
+  }, [token, friendId, state?.friendUsername, isConnected, joinRoom]);
+
+  useEffect(() => {
     return () => {
       if (roomName) {
         leaveRoom(roomName);
       }
     };
-  }, [token, friendId, isConnected]);
+  }, [roomName, leaveRoom]);
 
   // Join room when connection is established
   useEffect(() => {

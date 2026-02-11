@@ -1,6 +1,5 @@
 import { UserInfo, User } from "../types";
-
-export const API_BASE_URL = "http://localhost:8080/api";
+import { API_BASE_URL } from "./config";
 
 // Decode JWT token to extract user info (no server call needed)
 export function decodeJWT(token: string): User | null {
@@ -95,54 +94,36 @@ export async function register(username: string, password: string): Promise<stri
       throw new Error(errorData.error || "Failed to register");
     }
 
-    return "Registration successful";
+    const data = await response.json();
+    return data.token || "Registration successful";
   } catch (error: any) {
     throw new Error(error.message || "Unable to connect to the server");
   }
 }
 
 export async function getUserID(token: string): Promise<string> {
-  const response = await fetch(`${API_BASE_URL}/user/id`, {
-    method: "GET",
-    headers: headers(token),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Failed to fetch user ID");
+  const user = decodeJWT(token);
+  if (!user) {
+    throw new Error("Invalid token");
   }
-
-  const data = await response.json();
-  return data.userUUID;
+  return String(user.id);
 }
 
-// получить UserInfo по UUID
+// Backward-compatible fallback for legacy UI code.
+// Current backend has no public GET /api/user/:id endpoint.
 export async function getUserInfo(token: string, uuid: string): Promise<UserInfo> {
-  const response = await fetch(`${API_BASE_URL}/user/${uuid}`, {
-    method: "GET",
-    headers: headers(token),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Failed to fetch user info");
-  }
-
-  const data = await response.json();
-  return Array.isArray(data.user) ? data.user[0] : data.user;
+  void token;
+  return {
+    id: Number(uuid) || 0,
+    username: `user-${uuid}`,
+    name: `user-${uuid}`,
+  };
 }
 
 export async function getMe(token: string): Promise<User> {
-  const response = await fetch(`${API_BASE_URL}/user/me`, {
-    method: "GET",
-    headers: headers(token),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Failed to fetch user info");
+  const user = decodeJWT(token);
+  if (!user) {
+    throw new Error("Invalid token");
   }
-
-  const data = await response.json();
-  return data;
+  return user;
 }

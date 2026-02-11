@@ -1,43 +1,25 @@
 import { RoomInvite, Room } from "../types";
-import { API_BASE_URL, headers } from "./api";
+import { headers } from "./api";
+import { API_BASE_URL } from "./config";
 
 // Функция для получения списка приглашений в комнаты (GET /api/rooms/invites)
 export async function fetchRoomInvites(token: string): Promise<RoomInvite[]> {
-  const response = await fetch(`${API_BASE_URL}/rooms/invites`, {
-    method: "GET",
-    headers: headers(token),
-  });
-  if (!response.ok) {
-    throw new Error("Failed to fetch room invites");
-  }
-  const data = await response.json();
-  return Array.isArray(data.invites) ? data.invites : []; // сервер должен вернуть { invites: [...] }
+  void token;
+  return [];
 }
 
 // Функция для принятия приглашения в комнату (POST /api/rooms/invite/accept)
 export async function acceptRoomInvite(inviteId: number, token: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/rooms/invite/accept`, {
-    method: "POST",
-    headers: headers(token),
-    body: JSON.stringify({ invite_id: inviteId }),
-  });
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Failed to accept room invite");
-  }
+  void inviteId;
+  void token;
+  throw new Error("Room invites are not implemented on this server");
 }
 
 // Функция для отклонения приглашения в комнату (POST /api/rooms/invite/decline)
 export async function declineRoomInvite(inviteId: number, token: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/rooms/invite/decline`, {
-    method: "POST",
-    headers: headers(token),
-    body: JSON.stringify({ invite_id: inviteId }),
-  });
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Failed to decline room invite");
-  }
+  void inviteId;
+  void token;
+  throw new Error("Room invites are not implemented on this server");
 }
 
 /** Получаем комнаты пользователя (GET /rooms) */
@@ -85,14 +67,9 @@ export async function createRoom(name: string, token: string): Promise<Room> {
 
 /** Удаление комнаты (DELETE /rooms/:id) */
 export async function deleteRoom(roomID: string, token: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/rooms/${roomID}`, {
-    method: "DELETE",
-    headers: headers(token),
-  });
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Failed to delete room");
-  }
+  void roomID;
+  void token;
+  throw new Error("Room delete endpoint is not implemented on this server");
 }
 
 /** Join room as member (POST /rooms/:id/join) - required for calls */
@@ -122,28 +99,18 @@ export async function inviteFriendToRoom(
   username: string,
   token: string
 ): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/rooms/invite`, {
-    method: "POST",
-    headers: headers(token),
-    body: JSON.stringify({ roomID, username }),
-  });
-  if (!response.ok) {
-    const errorResponse = await response.json();
-    throw new Error(errorResponse.error || "Failed to invite friend to room");
-  }
+  void roomID;
+  void username;
+  void token;
+  throw new Error("Room invite endpoint is not implemented on this server");
 }
 
 /** Обновление комнаты (PUT /rooms/:id) */
 export async function updateRoom(roomID: string, name: string, token: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/rooms/${roomID}`, {
-    method: "PUT",
-    headers: headers(token),
-    body: JSON.stringify({ name, type: "public", password: "" }),
-  });
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Failed to update room");
-  }
+  void roomID;
+  void name;
+  void token;
+  throw new Error("Room update endpoint is not implemented on this server");
 }
 
 /** Create or get direct message room with a user (POST /rooms/direct) */

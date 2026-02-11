@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { MessageCircle, Video } from "lucide-react";
+
 import { useAuth } from "../context/AuthContext";
+import { useCall } from "../context/CallContext";
 import Button from "../components/Button";
 import {
   fetchFriendRequests,
@@ -7,21 +11,15 @@ import {
   declineFriendRequest,
   requestFriend,
   fetchFriends,
-  removeFriend,
   searchUsers,
-  pinFriend,
-  unpinFriend
 } from "../services/friends-api";
 import { FriendRequest, Friend, UserInfo } from "../types";
-import { getUserInfo } from "../services/api";
-import { useNavigate } from "react-router-dom";
-import { MessageCircle, PinOff, Pin, Trash2, Video } from "lucide-react";
-import { useCall } from "../context/CallContext";
 
 const FriendsPage: React.FC = () => {
   const { token } = useAuth();
   const navigate = useNavigate();
   const { initiateCall, state: callState } = useCall();
+
   const [friends, setFriends] = useState<Friend[]>([]);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -30,48 +28,25 @@ const FriendsPage: React.FC = () => {
   const [success, setSuccess] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [friendRequestUsernames, setFriendRequestUsernames] = useState<{ [key: number]: string }>({});
 
-  useEffect(() => {
+  const loadData = useCallback(async () => {
     if (!token) return;
-
-    const loadData = async () => {
-      try {
-        const [friendsData, requests] = await Promise.all([
-          fetchFriends(token),
-          fetchFriendRequests(token),
-        ]);
-        setFriends(friendsData);
-        setFriendRequests(requests);
-      } catch (err: any) {
-        setError(err.message || "Failed to load data");
-      }
-    };
-
-    loadData();
-  }, [token]); // Загружаем список друзей и заявки 1 раз при изменении токена
+    try {
+      const [friendsData, requests] = await Promise.all([
+        fetchFriends(token),
+        fetchFriendRequests(token),
+      ]);
+      setFriends(friendsData);
+      setFriendRequests(requests);
+    } catch (err: any) {
+      setError(err.message || "Failed to load data");
+    }
+  }, [token]);
 
   useEffect(() => {
-    if (!token || friendRequests.length === 0) return;
+    loadData();
+  }, [loadData]);
 
-    const loadUsernames = async () => {
-      const usernames: { [key: number]: string } = {};
-      for (const req of friendRequests) {
-        try {
-          const userInfo = await getUserInfo(token, req.from_user_id);
-          usernames[req.id] = userInfo.username;
-        } catch (err) {
-          console.warn(`Failed to fetch user info for ${req.from_user_id}:`, err);
-          usernames[req.id] = "Unknown User";
-        }
-      }
-      setFriendRequestUsernames(usernames);
-    };
-
-    loadUsernames();
-  }, [token, friendRequests]); // Загружаем юзернеймы после обновления friendRequests
-
-  // Функция поиска
   const fetchSearchResults = useCallback(async () => {
     if (!token) return;
     if (!searchQuery.trim()) {
@@ -92,7 +67,6 @@ const FriendsPage: React.FC = () => {
     }
   }, [searchQuery, token, friends]);
 
-  // Поиск при остановке ввода с задержкой 500 мс
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     if (typingTimeout) {
@@ -104,7 +78,6 @@ const FriendsPage: React.FC = () => {
     setTypingTimeout(timeout);
   };
 
-  // Поиск по кнопке
   const handleSearchClick = () => {
     if (typingTimeout) {
       clearTimeout(typingTimeout);
@@ -112,130 +85,58 @@ const FriendsPage: React.FC = () => {
     fetchSearchResults();
   };
 
-  // Обработчик отправки заявки другу (из результатов поиска)
   const handleSendFriendRequest = async (targetUser: { id: number; username: string }) => {
     if (!token) return;
     try {
       await requestFriend(targetUser.id, token);
       setSuccess(`Friend request sent to ${targetUser.username}`);
       setTimeout(() => setSuccess(""), 3000);
-      // Удаляем отправленный элемент из результатов поиска
       setSearchResults((prev) => prev.filter((foundUser) => foundUser.id !== targetUser.id));
     } catch (err: any) {
       setError(err.message || "Failed to send friend request");
     }
   };
 
-  // Обработчик удаления друга
-  const handleRemoveFriend = async (friendID: string) => {
+  const handleAcceptFriendRequest = async (request: FriendRequest) => {
     if (!token) return;
     try {
-      await removeFriend(friendID, token);
-      setFriends((prev) => prev.filter((friend) => friend.user_id !== friendID));
-      setSuccess(`Friend "${friendID}" removed successfully!`);
+      await acceptFriendRequest(Number(request.from_user_id), token);
+      await loadData();
+      setSuccess("Friend request accepted");
       setTimeout(() => setSuccess(""), 3000);
     } catch (err: any) {
-      setError(err.message || "Failed to remove friend");
+      setError(err.message || "Failed to accept friend request");
     }
   };
 
-  // Обработчик принятия заявки в друзья
-  // После принятия заявки добавляем нового друга в список, используя req.fromUserID
-  const handleAcceptFriendRequest = async (requestId: number, fromUserID: string) => {
+  const handleDeclineFriendRequest = async (request: FriendRequest) => {
     if (!token) return;
     try {
-      await acceptFriendRequest(requestId, token);
-      setFriendRequests((prev) => prev.filter((req) => req.id !== requestId));
-      // Добавляем нового друга, если его ещё нет
-      setFriends((prev) => {
-        if (!prev.some((friend) => friend.user_id === fromUserID)) {
-          return [
-            ...prev,
-            {
-              id: requestId,
-              user_id: fromUserID,
-              username: prev.find((user) => user.user_id === fromUserID)?.username || "",
-              is_online: false,
-              is_pinned: false,
-              created_at: new Date().toISOString(),
-            },
-          ];
-        }
-        return prev;
-      });
-    } catch (err: any) {
-      console.error("Failed to accept friend request:", err);
-    }
-  };
-
-  // Обработчик отклонения заявки в друзья
-  const handleDeclineFriendRequest = async (requestId: number) => {
-    if (!token) return;
-    try {
-      await declineFriendRequest(requestId, token);
-      setFriendRequests((prev) => prev.filter((req) => req.id !== requestId));
-    } catch (err: any) {
-      console.error("Failed to decline friend request:", err);
-    }
-  };
-
-  // Обработчик закрепления друга
-  const handlePin = async (friend: Friend) => {
-    if (!token) return;
-    try {
-      await pinFriend(friend.id, token);
-      setSuccess(`Friend "${friend.username}" pinned`);
+      await declineFriendRequest(Number(request.from_user_id), token);
+      await loadData();
+      setSuccess("Friend request declined");
       setTimeout(() => setSuccess(""), 3000);
-
-      setFriends((prev) =>
-        prev.map((f) =>
-          f.id === friend.id ? { ...f, is_pinned: true } : f
-        )
-      );
     } catch (err: any) {
-      setError(err.message || "Failed to pin friend");
+      setError(err.message || "Failed to decline friend request");
     }
   };
 
-  // Обработчик открепления друга
-  const handleUnpin = async (friend: Friend) => {
-    if (!token) return;
-    try {
-      await unpinFriend(friend.id, token);
-      setSuccess(`Friend "${friend.username}" unpinned`);
-      setTimeout(() => setSuccess(""), 3000);
-
-      setFriends((prev) =>
-        prev.map((f) =>
-          f.id === friend.id ? { ...f, is_pinned: false } : f
-        )
-      );
-    } catch (err: any) {
-      setError(err.message || "Failed to unpin friend");
-    }
-  };
-
-  // Обработчик перехода в чат
   const goToChat = (friend: Friend) => {
-    console.log("friend from friends", friend);
-    navigate(`/chat/${friend.user_id}`);
+    navigate(`/chat/${friend.friend_user_id}`, {
+      state: { friendUsername: friend.username },
+    });
   };
 
-  // Обработчик видеозвонка
   const handleVideoCall = (friend: Friend) => {
-    // Extract numeric user ID from friend
-    const userId = friend.id;
-    initiateCall('direct', userId, friend.username);
+    initiateCall("direct", friend.friend_user_id, friend.username);
   };
 
-  // Check if we can make calls
-  const canMakeCall = callState.status === 'idle' || callState.status === 'ended';
+  const canMakeCall = callState.status === "idle" || callState.status === "ended";
 
   return (
     <div className="min-h-screen flex flex-col p-6">
       <h1 className="text-2xl font-bold mb-4">Друзья</h1>
 
-      {/* Поле поиска + кнопка */}
       <div className="mb-4 flex gap-2">
         <input
           type="text"
@@ -249,7 +150,6 @@ const FriendsPage: React.FC = () => {
         </Button>
       </div>
 
-      {/* Секция результатов поиска */}
       {isSearching && <p className="text-gray-500">Идёт поиск...</p>}
       {searchResults.length > 0 && (
         <section className="mb-6">
@@ -270,7 +170,6 @@ const FriendsPage: React.FC = () => {
         </section>
       )}
 
-      {/* Секция входящих заявок */}
       {friendRequests.length > 0 && (
         <section className="mb-6">
           <h2 className="text-xl font-semibold mb-4">Заявки в друзья</h2>
@@ -281,13 +180,14 @@ const FriendsPage: React.FC = () => {
                 className="flex items-center justify-between p-3 rounded-lg bg-white shadow-sm"
               >
                 <span>
-                  <strong className="text-blue-600">{friendRequestUsernames[req.id]}</strong> хочет добавить вас в друзья
+                  <strong className="text-blue-600">{req.from_username}</strong> хочет добавить вас
+                  в друзья
                 </span>
                 <div className="flex gap-2">
-                  <Button variant="primary" size="sm" onClick={() => handleAcceptFriendRequest(req.id, req.from_user_id)}>
+                  <Button variant="primary" size="sm" onClick={() => handleAcceptFriendRequest(req)}>
                     Принять
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDeclineFriendRequest(req.id)}>
+                  <Button variant="ghost" size="sm" onClick={() => handleDeclineFriendRequest(req)}>
                     Отклонить
                   </Button>
                 </div>
@@ -297,10 +197,9 @@ const FriendsPage: React.FC = () => {
         </section>
       )}
 
-      {/* Секция списка друзей */}
       <div className="grid gap-4">
         {friends.length === 0 ? (
-          <p className="text-gray-500">Нет друзей. Отправьте заявку, чтобы добавить друзей!</p>
+          <p className="text-gray-500">Нет друзей. Отправьте заявку, чтобы добавить друзей.</p>
         ) : (
           friends.map((friend) => (
             <div
@@ -321,24 +220,12 @@ const FriendsPage: React.FC = () => {
                 >
                   <Video className="h-5 w-5" />
                 </Button>
-                {friend.is_pinned ? (
-                  <Button variant="ghost" size="sm" onClick={() => handleUnpin(friend)}>
-                    <PinOff className="h-5 w-5" color="red" />
-                  </Button>
-                ) : (
-                  <Button variant="ghost" size="sm" onClick={() => handlePin(friend)}>
-                    <Pin className="h-5 w-5" color="green" />
-                  </Button>
-                )}
-                <Button variant="ghost" size="sm" onClick={() => handleRemoveFriend(friend.user_id)}>
-                  <Trash2 className="h-5 w-5" color="red" />
-                </Button>
               </div>
             </div>
           ))
         )}
       </div>
-      {/* Display success/error messages */}
+
       {success && <div className="text-green-500 mt-4">{success}</div>}
       {error && <div className="text-red-500 mt-4">{error}</div>}
     </div>

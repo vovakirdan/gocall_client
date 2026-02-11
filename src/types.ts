@@ -43,10 +43,11 @@ export interface RoomMember {
 }
  */
 export interface Friend {
-  id: number;
+  id: number; // friendship row id
   username: string;
   is_online: boolean;
-  user_id: string;
+  user_id: string; // kept for route params compatibility
+  friend_user_id: number; // numeric target user id for DM/calls
   is_pinned: boolean;
   created_at: string;
 }
@@ -54,6 +55,7 @@ export interface Friend {
 export interface FriendRequest {
   id: number;
   from_user_id: string;
+  from_username: string;
   to_user_id: string;
   status: "pending" | "accepted" | "declined";
   created_at: string;

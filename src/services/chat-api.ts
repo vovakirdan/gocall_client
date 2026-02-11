@@ -1,14 +1,11 @@
-import { API_BASE_URL, headers } from "./api";
+import { headers } from "./api";
+import { API_BASE_URL } from "./config";
 import { IChatMessageResponse } from "../types";
 
 export async function fetchChatHistory(token: string): Promise<IChatMessageResponse[]> {
-    const response = await fetch(`${API_BASE_URL}/chat/history?with_user=` + token, {
-        method: "GET",
-        headers: headers(token),
-      });
-      if (!response.ok) {
-        throw new Error("Failed to fetch chat history");
-      }
-      const data = await response.json();
-      return data.messages;
+    // Legacy endpoint is not available on current backend.
+    // Keep function for compatibility with older UI paths.
+    void API_BASE_URL;
+    void headers(token);
+    return [];
 }

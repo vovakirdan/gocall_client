@@ -101,6 +101,13 @@ const initialState: CallState = {
   startTime: null,
 };
 
+const parseUserIDFromIdentity = (identity: string): number => {
+  // LiveKit identity is generated as "user-<id>".
+  const match = identity.match(/(\d+)$/);
+  if (!match) return 0;
+  return Number(match[1]) || 0;
+};
+
 // === Reducer ===
 
 function callReducer(state: CallState, action: CallAction): CallState {
@@ -329,7 +336,7 @@ export const CallProvider: React.FC<CallProviderProps> = ({
           dispatch({
             type: 'UPDATE_PARTICIPANTS',
             payload: livekitClientRef.current?.getAllParticipants().map(p => ({
-              userId: parseInt(p.identity) || 0,
+              userId: parseUserIDFromIdentity(p.identity),
               username: p.name,
               isLocal: p.isLocal,
               isMuted: p.isMuted,
@@ -341,7 +348,7 @@ export const CallProvider: React.FC<CallProviderProps> = ({
           dispatch({
             type: 'UPDATE_PARTICIPANTS',
             payload: livekitClientRef.current?.getAllParticipants().map(p => ({
-              userId: parseInt(p.identity) || 0,
+              userId: parseUserIDFromIdentity(p.identity),
               username: p.name,
               isLocal: p.isLocal,
               isMuted: p.isMuted,

@@ -1,7 +1,22 @@
-import { API_BASE_URL, headers } from "./api";
 import { FriendRequest, Friend, User } from "../types";
+import { decodeJWT, headers } from "./api";
+import { API_BASE_URL } from "./config";
 
-// Функция для получения списка заявок
+interface FriendResponse {
+  id: number;
+  user_id: number;
+  friend_id: number;
+  status: "pending" | "accepted" | "blocked";
+  created_at: string;
+  updated_at: string;
+  friend_username?: string;
+}
+
+const toNumericUserID = (token: string): number => {
+  const me = decodeJWT(token);
+  return me?.id ?? 0;
+};
+
 export async function fetchFriendRequests(token: string): Promise<FriendRequest[]> {
   const response = await fetch(`${API_BASE_URL}/friends/requests/incoming`, {
     method: "GET",
@@ -10,12 +25,18 @@ export async function fetchFriendRequests(token: string): Promise<FriendRequest[
   if (!response.ok) {
     throw new Error("Failed to fetch friend requests");
   }
-  const data = await response.json();
-  // Server may return array directly or { requests: [...] }
-  return Array.isArray(data) ? data : (Array.isArray(data.requests) ? data.requests : []);
+
+  const data = (await response.json()) as FriendResponse[];
+  return data.map((item) => ({
+    id: item.id,
+    from_user_id: String(item.user_id),
+    from_username: item.friend_username || `user-${item.user_id}`,
+    to_user_id: String(item.friend_id),
+    status: item.status === "blocked" ? "declined" : item.status,
+    created_at: item.created_at,
+  }));
 }
 
-// Функция для принятия заявки (POST /friends/:userId/accept)
 export async function acceptFriendRequest(userId: number, token: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/friends/${userId}/accept`, {
     method: "POST",
@@ -27,7 +48,6 @@ export async function acceptFriendRequest(userId: number, token: string): Promis
   }
 }
 
-// Функция для отклонения заявки (DELETE /friends/:userId/reject)
 export async function declineFriendRequest(userId: number, token: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/friends/${userId}/reject`, {
     method: "DELETE",
@@ -39,12 +59,11 @@ export async function declineFriendRequest(userId: number, token: string): Promi
   }
 }
 
-// Функция для отправки заявки на дружбу (POST /friends/requests)
 export async function requestFriend(friendUserId: number, token: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/friends/requests`, {
     method: "POST",
     headers: headers(token),
-    body: JSON.stringify({ target_user_id: friendUserId }),
+    body: JSON.stringify({ user_id: friendUserId }),
   });
   if (!response.ok) {
     const errorData = await response.json();
@@ -52,7 +71,6 @@ export async function requestFriend(friendUserId: number, token: string): Promis
   }
 }
 
-// Функция для получения списка друзей
 export async function fetchFriends(token: string): Promise<Friend[]> {
   const response = await fetch(`${API_BASE_URL}/friends`, {
     method: "GET",
@@ -61,63 +79,51 @@ export async function fetchFriends(token: string): Promise<Friend[]> {
   if (!response.ok) {
     throw new Error("Failed to fetch friends");
   }
-  const data = await response.json();
-  // Server may return array directly or { friends: [...] }
-  return Array.isArray(data) ? data : (Array.isArray(data.friends) ? data.friends : []);
+
+  const me = toNumericUserID(token);
+  const data = (await response.json()) as FriendResponse[];
+  return data.map((item) => {
+    const friendUserID = item.user_id === me ? item.friend_id : item.user_id;
+    return {
+      id: item.id,
+      user_id: String(friendUserID),
+      friend_user_id: friendUserID,
+      username: item.friend_username || `user-${friendUserID}`,
+      is_online: false,
+      is_pinned: false,
+      created_at: item.created_at,
+    };
+  });
 }
 
-// Функция для добавления друга
 export async function addFriend(friendUsername: string, token: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/friends/add`, {
-    method: "POST",
-    headers: headers(token),
-    body: JSON.stringify({ friend_username: friendUsername }),
-  });
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Failed to add friend");
-  }
+  void friendUsername;
+  void token;
+  throw new Error("User search/add by username is not implemented on this server");
 }
 
-// Функция для удаления друга
 export async function removeFriend(friendUsername: string, token: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/friends/remove`, {
-    method: "POST",
-    headers: headers(token),
-    body: JSON.stringify({ friend_username: friendUsername }),
-  });
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Failed to remove friend");
-  }
+  void friendUsername;
+  void token;
+  throw new Error("Friend remove endpoint is not implemented on this server");
 }
 
-// Функция для поиска пользователей - not implemented in WireChat
 export async function searchUsers(_query: string, _token: string): Promise<User[]> {
-  // User search not implemented in WireChat server - return empty array
-  // TODO: Add search endpoint to server or use friend list filtering
   return [];
 }
 
-export async function pinFriend(friendId: number, token: string) {
-  const res = await fetch(`${API_BASE_URL}/friends/pin`, {
-    method: "POST",
-    headers: headers(token),
-    body: JSON.stringify({ friend_id: friendId })
-  });
-  if (!res.ok) throw new Error("Failed to pin friend");
+export async function pinFriend(friendId: number, token: string): Promise<void> {
+  void friendId;
+  void token;
+  throw new Error("Pin friend is not implemented on this server");
 }
 
-export async function unpinFriend(friendId: number, token: string) {
-  const res = await fetch(`${API_BASE_URL}/friends/unpin`, {
-    method: "DELETE",
-    headers: headers(token),
-    body: JSON.stringify({ friend_id: friendId })
-  });
-  if (!res.ok) throw new Error("Failed to unpin friend");
+export async function unpinFriend(friendId: number, token: string): Promise<void> {
+  void friendId;
+  void token;
+  throw new Error("Unpin friend is not implemented on this server");
 }
 
 export async function fetchPinnedFriends(_token: string): Promise<Friend[]> {
-  // Pinned friends not implemented in WireChat server - return empty array
   return [];
 }

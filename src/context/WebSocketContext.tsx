@@ -20,6 +20,7 @@ import {
   EventUserLeft,
   WirechatEventHandlers,
 } from '../services/wirechat-ws';
+import { WS_BASE_URL } from '../services/config';
 
 // === Types ===
 
@@ -73,7 +74,7 @@ interface WebSocketProviderProps {
 
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   children,
-  serverUrl = 'ws://localhost:8080/ws',
+  serverUrl = WS_BASE_URL,
 }) => {
   const { token, user } = useAuth();
   const clientRef = useRef<WirechatClient | null>(null);
