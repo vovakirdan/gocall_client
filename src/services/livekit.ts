@@ -245,7 +245,10 @@ export class LiveKitClient {
     participant: RemoteParticipant | LocalParticipant,
     isLocal: boolean
   ): ParticipantInfo {
-    const videoTrack = participant.getTrackPublication(Track.Source.Camera)?.track;
+    const screenSharePublication = participant.getTrackPublication(Track.Source.ScreenShare);
+    const cameraPublication = participant.getTrackPublication(Track.Source.Camera);
+    const videoPublication = screenSharePublication || cameraPublication;
+    const videoTrack = videoPublication?.track;
     const audioTrack = participant.getTrackPublication(Track.Source.Microphone)?.track;
 
     return {
@@ -256,7 +259,7 @@ export class LiveKitClient {
       videoTrack: videoTrack || undefined,
       audioTrack: audioTrack || undefined,
       isMuted: participant.getTrackPublication(Track.Source.Microphone)?.isMuted ?? true,
-      isCameraOff: participant.getTrackPublication(Track.Source.Camera)?.isMuted ?? true,
+      isCameraOff: videoPublication?.isMuted ?? true,
     };
   }
 
@@ -455,7 +458,7 @@ export class LiveKitClient {
   }
 
   getLocalVideoTrack(): LocalVideoTrack | null {
-    return this.localVideoTrack;
+    return this.screenShareTrack || this.localVideoTrack;
   }
 
   getLocalAudioTrack(): LocalAudioTrack | null {
