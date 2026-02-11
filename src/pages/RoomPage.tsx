@@ -20,7 +20,7 @@ import { useCall } from '../context/CallContext';
 import { useWebSocketContext } from '../context/WebSocketContext';
 import { useAuth } from '../context/AuthContext';
 import { joinRoomAsMember } from '../services/rooms-api';
-import { VideoTrack } from 'livekit-client';
+import { AudioTrack, VideoTrack } from 'livekit-client';
 import { ParticipantInfo } from '../services/livekit';
 
 // Video tile for a participant
@@ -30,6 +30,7 @@ interface VideoTileProps {
 
 const VideoTile: React.FC<VideoTileProps> = ({ participant }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
     if (videoRef.current && participant.videoTrack) {
@@ -44,10 +45,26 @@ const VideoTile: React.FC<VideoTileProps> = ({ participant }) => {
     }
   }, [participant.videoTrack]);
 
+  useEffect(() => {
+    if (participant.isLocal || !audioRef.current || !participant.audioTrack) {
+      return;
+    }
+
+    const audioTrack = participant.audioTrack as AudioTrack;
+    audioTrack.attach(audioRef.current);
+
+    return () => {
+      if (audioRef.current) {
+        audioTrack.detach(audioRef.current);
+      }
+    };
+  }, [participant.audioTrack, participant.isLocal]);
+
   const hasVideo = participant.videoTrack && !participant.isCameraOff;
 
   return (
     <div className="relative rounded-xl overflow-hidden bg-gray-800 aspect-video shadow-lg">
+      {!participant.isLocal && <audio ref={audioRef} autoPlay playsInline />}
       {hasVideo ? (
         <video
           ref={videoRef}

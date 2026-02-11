@@ -18,11 +18,12 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCall } from '../../context/CallContext';
-import { Track, VideoTrack } from 'livekit-client';
+import { AudioTrack, Track, VideoTrack } from 'livekit-client';
 
 // Video tile for a participant
 interface VideoTileProps {
   track?: Track | null;
+  audioTrack?: Track | null;
   name: string;
   isLocal?: boolean;
   isMuted?: boolean;
@@ -31,12 +32,14 @@ interface VideoTileProps {
 
 const VideoTile: React.FC<VideoTileProps> = ({
   track,
+  audioTrack,
   name,
   isLocal = false,
   isMuted = false,
   isCameraOff = false,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
     if (videoRef.current && track) {
@@ -49,8 +52,24 @@ const VideoTile: React.FC<VideoTileProps> = ({
     }
   }, [track]);
 
+  useEffect(() => {
+    if (isLocal || !audioRef.current || !audioTrack) {
+      return;
+    }
+
+    const remoteAudioTrack = audioTrack as AudioTrack;
+    remoteAudioTrack.attach(audioRef.current);
+
+    return () => {
+      if (audioRef.current) {
+        remoteAudioTrack.detach(audioRef.current);
+      }
+    };
+  }, [audioTrack, isLocal]);
+
   return (
     <div className="relative rounded-xl overflow-hidden bg-gray-900 aspect-video">
+      {!isLocal && <audio ref={audioRef} autoPlay playsInline />}
       {track && !isCameraOff ? (
         <video
           ref={videoRef}
@@ -280,6 +299,7 @@ const ActiveCallView: React.FC = () => {
                 <VideoTile
                   key={p.sid}
                   track={p.videoTrack || null}
+                  audioTrack={p.audioTrack || null}
                   name={p.name}
                   isMuted={p.isMuted}
                   isCameraOff={p.isCameraOff}

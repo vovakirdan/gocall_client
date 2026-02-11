@@ -325,36 +325,44 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     if (!livekitClientRef.current) return;
 
     try {
+      const syncParticipants = () => {
+        dispatch({
+          type: 'UPDATE_PARTICIPANTS',
+          payload: livekitClientRef.current?.getAllParticipants().map((p) => ({
+            userId: parseUserIDFromIdentity(p.identity),
+            username: p.name,
+            isLocal: p.isLocal,
+            isMuted: p.isMuted,
+            isCameraOff: p.isCameraOff,
+          })) || [],
+        });
+      };
+
       livekitClientRef.current.setHandlers({
         onConnected: () => {
           dispatch({ type: 'CALL_CONNECTED' });
+          syncParticipants();
         },
         onDisconnected: () => {
           // LiveKit disconnected - call may have ended
         },
         onParticipantConnected: () => {
-          dispatch({
-            type: 'UPDATE_PARTICIPANTS',
-            payload: livekitClientRef.current?.getAllParticipants().map(p => ({
-              userId: parseUserIDFromIdentity(p.identity),
-              username: p.name,
-              isLocal: p.isLocal,
-              isMuted: p.isMuted,
-              isCameraOff: p.isCameraOff,
-            })) || [],
-          });
+          syncParticipants();
         },
         onParticipantDisconnected: () => {
-          dispatch({
-            type: 'UPDATE_PARTICIPANTS',
-            payload: livekitClientRef.current?.getAllParticipants().map(p => ({
-              userId: parseUserIDFromIdentity(p.identity),
-              username: p.name,
-              isLocal: p.isLocal,
-              isMuted: p.isMuted,
-              isCameraOff: p.isCameraOff,
-            })) || [],
-          });
+          syncParticipants();
+        },
+        onTrackSubscribed: () => {
+          syncParticipants();
+        },
+        onTrackUnsubscribed: () => {
+          syncParticipants();
+        },
+        onTrackMuted: () => {
+          syncParticipants();
+        },
+        onTrackUnmuted: () => {
+          syncParticipants();
         },
         onError: (error) => {
           dispatch({ type: 'SET_ERROR', payload: error.message });
