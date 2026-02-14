@@ -221,8 +221,10 @@ function callReducer(state: CallState, action: CallAction): CallState {
       };
 
     case 'CALL_ENDED':
+      // Treat call-ended as a full call-scope teardown to avoid leaking
+      // local-only per-call settings (e.g. per-participant volume) into a new call.
       return {
-        ...state,
+        ...initialState,
         status: 'ended',
         error: action.payload?.reason || null,
       };
@@ -356,9 +358,15 @@ export const CallProvider: React.FC<CallProviderProps> = ({
       onCallParticipantLeft: (data) => {
         dispatch({ type: 'PARTICIPANT_LEFT', payload: data });
       },
-      onCallEnded: (data) => {
-        dispatch({ type: 'CALL_ENDED', payload: data });
-        disconnectLiveKit();
+      onCallEnded: async (_data) => {
+        // Server-driven call end should fully reset call-scoped state so a subsequent
+        // call cannot inherit stale local-only settings (e.g. per-participant volume).
+        currentCallIdRef.current = null;
+        try {
+          await disconnectLiveKit();
+        } finally {
+          dispatch({ type: 'RESET' });
+        }
       },
     });
   }, [wirechatClient]);
@@ -392,7 +400,13 @@ export const CallProvider: React.FC<CallProviderProps> = ({
         onParticipantConnected: () => {
           syncParticipants();
         },
-        onParticipantDisconnected: () => {
+        onParticipantDisconnected: (participant) => {
+          if (participant?.identity) {
+            dispatch({
+              type: 'RESET_PARTICIPANT_VOLUME',
+              payload: { participantIdentity: participant.identity },
+            });
+          }
           syncParticipants();
         },
         onTrackSubscribed: () => {
