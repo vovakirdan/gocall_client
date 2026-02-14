@@ -57,6 +57,11 @@ export interface CallState {
   roomId: number | null;
   roomName: string | null;
   participants: CallParticipant[];
+  /**
+   * Local-only per participant output level (0-100%).
+   * Keyed by LiveKit participant identity for stability across track restarts.
+   */
+  participantVolumes: Record<string, number>;
   localMuted: boolean;
   localCameraOff: boolean;
   screenSharing: boolean;
@@ -81,6 +86,8 @@ type CallAction =
   | { type: 'TOGGLE_CAMERA'; payload: boolean }
   | { type: 'TOGGLE_SCREEN_SHARE'; payload: boolean }
   | { type: 'UPDATE_PARTICIPANTS'; payload: CallParticipant[] }
+  | { type: 'SET_PARTICIPANT_VOLUME'; payload: { participantIdentity: string; volume: number } }
+  | { type: 'RESET_PARTICIPANT_VOLUME'; payload: { participantIdentity: string } }
   | { type: 'SET_ERROR'; payload: string }
   | { type: 'RESET' };
 
@@ -94,6 +101,7 @@ const initialState: CallState = {
   roomId: null,
   roomName: null,
   participants: [],
+  participantVolumes: {},
   localMuted: true,
   localCameraOff: true,
   screenSharing: false,
@@ -106,6 +114,11 @@ const parseUserIDFromIdentity = (identity: string): number => {
   const match = identity.match(/(\d+)$/);
   if (!match) return 0;
   return Number(match[1]) || 0;
+};
+
+const clampVolumePercent = (value: number): number => {
+  if (!Number.isFinite(value)) return 100;
+  return Math.min(100, Math.max(0, Math.round(value)));
 };
 
 // === Reducer ===
@@ -208,8 +221,10 @@ function callReducer(state: CallState, action: CallAction): CallState {
       };
 
     case 'CALL_ENDED':
+      // Treat call-ended as a full call-scope teardown to avoid leaking
+      // local-only per-call settings (e.g. per-participant volume) into a new call.
       return {
-        ...state,
+        ...initialState,
         status: 'ended',
         error: action.payload?.reason || null,
       };
@@ -225,6 +240,33 @@ function callReducer(state: CallState, action: CallAction): CallState {
 
     case 'UPDATE_PARTICIPANTS':
       return { ...state, participants: action.payload };
+
+    case 'SET_PARTICIPANT_VOLUME': {
+      const identity = action.payload.participantIdentity;
+      if (!identity) return state;
+
+      const volume = clampVolumePercent(action.payload.volume);
+      // Keep the state minimal: default volume (100) is treated as "unset".
+      if (volume === 100) {
+        const { [identity]: _removed, ...rest } = state.participantVolumes;
+        return { ...state, participantVolumes: rest };
+      }
+
+      return {
+        ...state,
+        participantVolumes: {
+          ...state.participantVolumes,
+          [identity]: volume,
+        },
+      };
+    }
+
+    case 'RESET_PARTICIPANT_VOLUME': {
+      const identity = action.payload.participantIdentity;
+      if (!identity) return state;
+      const { [identity]: _removed, ...rest } = state.participantVolumes;
+      return { ...state, participantVolumes: rest };
+    }
 
     case 'SET_ERROR':
       return { ...state, error: action.payload };
@@ -248,6 +290,9 @@ interface CallContextValue {
   toggleMic: () => Promise<void>;
   toggleCamera: () => Promise<void>;
   toggleScreenShare: () => Promise<void>;
+  getParticipantVolume: (participantIdentity: string) => number;
+  setParticipantVolume: (participantIdentity: string, volume: number) => void;
+  resetParticipantVolume: (participantIdentity: string) => void;
   resetCall: () => void;
   livekitClient: LiveKitClient | null;
   getLocalVideoTrack: () => MediaStreamTrack | null;
@@ -313,9 +358,15 @@ export const CallProvider: React.FC<CallProviderProps> = ({
       onCallParticipantLeft: (data) => {
         dispatch({ type: 'PARTICIPANT_LEFT', payload: data });
       },
-      onCallEnded: (data) => {
-        dispatch({ type: 'CALL_ENDED', payload: data });
-        disconnectLiveKit();
+      onCallEnded: async (_data) => {
+        // Server-driven call end should fully reset call-scoped state so a subsequent
+        // call cannot inherit stale local-only settings (e.g. per-participant volume).
+        currentCallIdRef.current = null;
+        try {
+          await disconnectLiveKit();
+        } finally {
+          dispatch({ type: 'RESET' });
+        }
       },
     });
   }, [wirechatClient]);
@@ -349,7 +400,13 @@ export const CallProvider: React.FC<CallProviderProps> = ({
         onParticipantConnected: () => {
           syncParticipants();
         },
-        onParticipantDisconnected: () => {
+        onParticipantDisconnected: (participant) => {
+          if (participant?.identity) {
+            dispatch({
+              type: 'RESET_PARTICIPANT_VOLUME',
+              payload: { participantIdentity: participant.identity },
+            });
+          }
           syncParticipants();
         },
         onTrackSubscribed: () => {
@@ -522,6 +579,25 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     }
   }, []);
 
+  const getParticipantVolume = useCallback((participantIdentity: string) => {
+    if (!participantIdentity) return 100;
+    return clampVolumePercent(state.participantVolumes[participantIdentity] ?? 100);
+  }, [state.participantVolumes]);
+
+  const setParticipantVolume = useCallback((participantIdentity: string, volume: number) => {
+    dispatch({
+      type: 'SET_PARTICIPANT_VOLUME',
+      payload: { participantIdentity, volume },
+    });
+  }, []);
+
+  const resetParticipantVolume = useCallback((participantIdentity: string) => {
+    dispatch({
+      type: 'RESET_PARTICIPANT_VOLUME',
+      payload: { participantIdentity },
+    });
+  }, []);
+
   const resetCall = useCallback(() => {
     disconnectLiveKit();
     dispatch({ type: 'RESET' });
@@ -545,6 +621,9 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     toggleMic,
     toggleCamera,
     toggleScreenShare,
+    getParticipantVolume,
+    setParticipantVolume,
+    resetParticipantVolume,
     resetCall,
     livekitClient: livekitClientRef.current,
     getLocalVideoTrack,

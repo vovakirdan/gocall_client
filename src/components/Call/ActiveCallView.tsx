@@ -15,6 +15,9 @@ import {
   Users,
   Maximize2,
   Minimize2,
+  RotateCcw,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCall } from '../../context/CallContext';
@@ -28,6 +31,9 @@ interface VideoTileProps {
   isLocal?: boolean;
   isMuted?: boolean;
   isCameraOff?: boolean;
+  volumePercent?: number;
+  onVolumeChange?: (volumePercent: number) => void;
+  onResetVolume?: () => void;
 }
 
 const VideoTile: React.FC<VideoTileProps> = ({
@@ -37,9 +43,25 @@ const VideoTile: React.FC<VideoTileProps> = ({
   isLocal = false,
   isMuted = false,
   isCameraOff = false,
+  volumePercent = 100,
+  onVolumeChange,
+  onResetVolume,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const volumePercentRef = useRef<number>(volumePercent);
+  const [showVolumeControls, setShowVolumeControls] = useState(false);
+
+  useEffect(() => {
+    volumePercentRef.current = volumePercent;
+
+    if (isLocal || !audioRef.current) {
+      return;
+    }
+
+    const clamped = Math.min(100, Math.max(0, volumePercent));
+    audioRef.current.volume = clamped / 100;
+  }, [volumePercent, isLocal]);
 
   useEffect(() => {
     if (videoRef.current && track) {
@@ -58,12 +80,14 @@ const VideoTile: React.FC<VideoTileProps> = ({
     }
 
     const remoteAudioTrack = audioTrack as AudioTrack;
-    remoteAudioTrack.attach(audioRef.current);
+    const audioEl = audioRef.current;
+    // Apply volume before attaching to avoid an initial "full volume" blip.
+    const clamped = Math.min(100, Math.max(0, volumePercentRef.current));
+    audioEl.volume = clamped / 100;
+    remoteAudioTrack.attach(audioEl);
 
     return () => {
-      if (audioRef.current) {
-        remoteAudioTrack.detach(audioRef.current);
-      }
+      remoteAudioTrack.detach(audioEl);
     };
   }, [audioTrack, isLocal]);
 
@@ -95,6 +119,70 @@ const VideoTile: React.FC<VideoTileProps> = ({
         </span>
         {isMuted && <MicOff className="w-4 h-4 text-red-400" />}
       </div>
+
+      {/* Per-participant volume (remote only) */}
+      {!isLocal && (
+        <div className="absolute top-3 right-3">
+          <div
+            className={`flex items-center gap-2 rounded-lg px-2 py-1.5 bg-black/50 backdrop-blur-sm ${
+              showVolumeControls ? 'ring-1 ring-white/10' : ''
+            }`}
+          >
+            <button
+              type="button"
+              className="p-1 rounded hover:bg-white/10 transition-colors"
+              onClick={() => setShowVolumeControls((v) => !v)}
+              aria-label={`${showVolumeControls ? 'Hide' : 'Show'} volume controls for ${name}`}
+              title="Participant volume"
+            >
+              {volumePercent <= 0 ? (
+                <VolumeX className="w-4 h-4 text-white/90" />
+              ) : (
+                <Volume2 className="w-4 h-4 text-white/90" />
+              )}
+            </button>
+
+            {showVolumeControls && (
+              <>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={Math.min(100, Math.max(0, volumePercent))}
+                  onChange={(e) => {
+                    const next = Number(e.target.value);
+                    if (audioRef.current) {
+                      const clamped = Math.min(100, Math.max(0, next));
+                      audioRef.current.volume = clamped / 100;
+                    }
+                    onVolumeChange?.(next);
+                  }}
+                  className="w-28 accent-primary"
+                  aria-label={`Volume for ${name}`}
+                />
+                <span className="text-xs text-white/80 tabular-nums w-10 text-right">
+                  {Math.min(100, Math.max(0, volumePercent))}%
+                </span>
+                <button
+                  type="button"
+                  className="p-1 rounded hover:bg-white/10 transition-colors"
+                  onClick={() => {
+                    if (audioRef.current) {
+                      audioRef.current.volume = 1;
+                    }
+                    onResetVolume?.();
+                  }}
+                  aria-label={`Reset volume for ${name}`}
+                  title="Reset volume"
+                >
+                  <RotateCcw className="w-4 h-4 text-white/80" />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Local indicator */}
       {isLocal && (
@@ -183,6 +271,9 @@ const ActiveCallView: React.FC = () => {
     toggleScreenShare,
     livekitClient,
     getRemoteParticipants,
+    getParticipantVolume,
+    setParticipantVolume,
+    resetParticipantVolume,
   } = useCall();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
@@ -303,6 +394,9 @@ const ActiveCallView: React.FC = () => {
                   name={p.name}
                   isMuted={p.isMuted}
                   isCameraOff={p.isCameraOff}
+                  volumePercent={getParticipantVolume(p.identity)}
+                  onVolumeChange={(v) => setParticipantVolume(p.identity, v)}
+                  onResetVolume={() => resetParticipantVolume(p.identity)}
                 />
               ))}
             </div>
