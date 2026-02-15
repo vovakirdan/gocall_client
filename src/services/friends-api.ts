@@ -108,8 +108,27 @@ export async function removeFriend(friendUsername: string, token: string): Promi
   throw new Error("Friend remove endpoint is not implemented on this server");
 }
 
-export async function searchUsers(_query: string, _token: string): Promise<User[]> {
-  return [];
+export async function searchUsers(query: string, token: string, signal?: AbortSignal): Promise<User[]> {
+  const response = await fetch(`${API_BASE_URL}/users/search?q=${encodeURIComponent(query)}`, {
+    method: "GET",
+    headers: headers(token),
+    signal,
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to search users");
+  }
+
+  const data = (await response.json()) as { id: number; username: string; name: string }[];
+  return data.map((item) => ({
+    id: item.id,
+    user_id: String(item.id),
+    username: item.username,
+    name: item.name,
+    email: "", // Not returned by API
+    is_online: false, // Not returned by API
+    created_at: "", // Not returned by API
+  }));
 }
 
 export async function pinFriend(friendId: number, token: string): Promise<void> {

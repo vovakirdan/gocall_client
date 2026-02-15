@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { MessageCircle, Video } from "lucide-react";
 
@@ -27,7 +27,12 @@ const FriendsPage: React.FC = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const trimmedQuery = searchQuery.trim();
+  const showMinQueryHint = trimmedQuery.length > 0 && trimmedQuery.length < 3;
 
   const loadData = useCallback(async () => {
     if (!token) return;
@@ -47,42 +52,95 @@ const FriendsPage: React.FC = () => {
     loadData();
   }, [loadData]);
 
-  const fetchSearchResults = useCallback(async () => {
-    if (!token) return;
-    if (!searchQuery.trim()) {
+  useEffect(() => {
+    return () => {
+      if (searchTimerRef.current) {
+        clearTimeout(searchTimerRef.current);
+        searchTimerRef.current = null;
+      }
+      abortRef.current?.abort();
+    };
+  }, []);
+
+  const performSearch = useCallback(
+    async (rawQuery: string) => {
+      const q = rawQuery.trim();
+
+      // Clear stale error as the user types / retries.
+      setError("");
+
+      if (q.length === 0) {
+        abortRef.current?.abort();
+        setIsSearching(false);
+        setSearchResults([]);
+        return;
+      }
+
+      if (q.length < 3) {
+        abortRef.current?.abort();
+        setIsSearching(false);
+        setSearchResults([]);
+        return;
+      }
+
+      if (!token) return;
+
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      setIsSearching(true);
+      try {
+        const results = await searchUsers(q, token, controller.signal);
+        const filtered = results.filter(
+          (user) => !friends.some((friend) => friend.username === user.username)
+        );
+        setSearchResults(filtered);
+        setError("");
+      } catch (err: any) {
+        if (err?.name === "AbortError") {
+          return;
+        }
+        setSearchResults([]);
+        setError(err.message || "Failed to search users");
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsSearching(false);
+        }
+      }
+    },
+    [token, friends]
+  );
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    setError("");
+
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+      searchTimerRef.current = null;
+    }
+
+    const q = value.trim();
+    if (q.length < 3) {
+      abortRef.current?.abort();
+      setIsSearching(false);
       setSearchResults([]);
       return;
     }
-    setIsSearching(true);
-    try {
-      const results = await searchUsers(searchQuery, token);
-      const filtered = results.filter(
-        (user) => !friends.some((friend) => friend.username === user.username)
-      );
-      setSearchResults(filtered);
-    } catch (err: any) {
-      setError(err.message || "Failed to search users");
-    } finally {
-      setIsSearching(false);
-    }
-  }, [searchQuery, token, friends]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-    if (typingTimeout) {
-      clearTimeout(typingTimeout);
-    }
-    const timeout = setTimeout(() => {
-      fetchSearchResults();
+    searchTimerRef.current = setTimeout(() => {
+      void performSearch(value);
     }, 500);
-    setTypingTimeout(timeout);
   };
 
   const handleSearchClick = () => {
-    if (typingTimeout) {
-      clearTimeout(typingTimeout);
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+      searchTimerRef.current = null;
     }
-    fetchSearchResults();
+    void performSearch(searchQuery);
   };
 
   const handleSendFriendRequest = async (targetUser: { id: number; username: string }) => {
@@ -150,6 +208,9 @@ const FriendsPage: React.FC = () => {
         </Button>
       </div>
 
+      {showMinQueryHint && (
+        <p className="text-gray-500 mb-4">Введите минимум 3 символа для поиска</p>
+      )}
       {isSearching && <p className="text-gray-500">Идёт поиск...</p>}
       {searchResults.length > 0 && (
         <section className="mb-6">
