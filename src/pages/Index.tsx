@@ -8,15 +8,14 @@ import {
   deleteRoom,
   updateRoom,
   inviteFriendToRoom,
+  getOrCreateDirectRoom,
 } from "../services/rooms-api";
 import { fetchFriends } from "../services/friends-api";
 import { Room, Friend } from "../types";
-import { useCall } from "../context/CallContext";
 import { useNavigate } from "react-router-dom";
 
 const Index: React.FC = () => {
-  const { token } = useAuth();
-  const { initiateCall, state: callState } = useCall();
+  const { token, user } = useAuth();
   const navigate = useNavigate();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [invitedRooms, setInvitedRooms] = useState<Room[]>([]);
@@ -35,7 +34,10 @@ const Index: React.FC = () => {
         const fetchedFriends = await fetchFriends(token);
 
         // Помечаем, какие комнаты созданы пользователем
-        const markedOwnRooms = ownRooms.map((room) => ({ ...room, is_owner: true }));
+        const markedOwnRooms = ownRooms.map((room) => ({
+          ...room,
+          is_owner: room.user_id === user?.user_id,
+        }));
         const markedInvitedRooms = invited.map((room) => ({ ...room, is_owner: false }));
 
         setRooms(markedOwnRooms);
@@ -46,9 +48,11 @@ const Index: React.FC = () => {
       }
     };
     loadData();
-  }, [token]);
+  }, [token, user?.user_id]);
 
   const allRooms: Room[] = [...rooms, ...invitedRooms];
+  const getRoomDisplayName = (room: Room) =>
+    room.name.startsWith("__direct__:") ? "Private voice room" : room.name;
 
   // Удаление комнаты
   const handleDeleteRoom = async (roomId: string) => {
@@ -103,8 +107,8 @@ const Index: React.FC = () => {
 
   // Обработка присоединения к комнате - navigate using room name
   const handleJoinRoom = (room: Room) => {
-    navigate(`/room/${encodeURIComponent(room.name)}`, {
-      state: { roomId: parseInt(room.room_id, 10) }
+    navigate(`/room/${encodeURIComponent(room.room_id)}`, {
+      state: { roomName: room.name }
     });
   };
 
@@ -131,7 +135,7 @@ const Index: React.FC = () => {
       <main className="flex-1 overflow-auto p-6">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-2xl font-bold">Welcome to VideoChat</h1>
-          <Button variant="primary">
+          <Button variant="primary" onClick={() => navigate("/rooms")}>
             <Plus className="h-4 w-4 mr-2" />
             Create Room
           </Button>
@@ -156,7 +160,7 @@ const Index: React.FC = () => {
                   }`}
                 >
                   <div className="mb-2">
-                    <h3 className="font-medium">{room.name}</h3>
+                    <h3 className="font-medium">{getRoomDisplayName(room)}</h3>
                   </div>
                   <div className="flex justify-between items-center">
                     <Button
@@ -223,7 +227,6 @@ const Index: React.FC = () => {
           ) : (
             <div className="grid gap-2">
               {friends.map((friend) => {
-                const canMakeCall = callState.status === 'idle' || callState.status === 'ended';
                 return (
                   <div
                     key={friend.id}
@@ -236,11 +239,20 @@ const Index: React.FC = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      disabled={!canMakeCall}
-                      onClick={() => initiateCall('direct', friend.friend_user_id, friend.username)}
+                      onClick={async () => {
+                        if (!token) return;
+                        try {
+                          const room = await getOrCreateDirectRoom(friend.friend_user_id, token);
+                          navigate(`/room/${encodeURIComponent(room.room_id)}`, {
+                            state: { roomName: `Private voice with ${friend.username}` },
+                          });
+                        } catch (error) {
+                          console.error("Failed to open private room:", error);
+                        }
+                      }}
                     >
                       <Video className="h-4 w-4 mr-2" />
-                      Call
+                      Voice Room
                     </Button>
                   </div>
                 );

@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageCircle, Video } from "lucide-react";
+import { MessageCircle, Trash2, Video } from "lucide-react";
 
 import { useAuth } from "../context/AuthContext";
-import { useCall } from "../context/CallContext";
 import Button from "../components/Button";
 import {
   fetchFriendRequests,
@@ -12,13 +11,14 @@ import {
   requestFriend,
   fetchFriends,
   searchUsers,
+  removeFriend,
 } from "../services/friends-api";
+import { getOrCreateDirectRoom } from "../services/rooms-api";
 import { FriendRequest, Friend, UserInfo } from "../types";
 
 const FriendsPage: React.FC = () => {
-  const { token } = useAuth();
+  const { token, user: currentUser } = useAuth();
   const navigate = useNavigate();
-  const { initiateCall, state: callState } = useCall();
 
   const [friends, setFriends] = useState<Friend[]>([]);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
@@ -93,7 +93,10 @@ const FriendsPage: React.FC = () => {
       try {
         const results = await searchUsers(q, token, controller.signal);
         const filtered = results.filter(
-          (user) => !friends.some((friend) => friend.username === user.username)
+          (user) =>
+            user.username !== currentUser?.username &&
+            user.id !== currentUser?.id &&
+            !friends.some((friend) => friend.username === user.username)
         );
         setSearchResults(filtered);
         setError("");
@@ -109,7 +112,7 @@ const FriendsPage: React.FC = () => {
         }
       }
     },
-    [token, friends]
+    [token, friends, currentUser]
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -145,11 +148,21 @@ const FriendsPage: React.FC = () => {
 
   const handleSendFriendRequest = async (targetUser: { id: number; username: string }) => {
     if (!token) return;
+    if (
+      targetUser.username === currentUser?.username ||
+      targetUser.id === currentUser?.id
+    ) {
+      setError("Нельзя добавить себя в друзья");
+      return;
+    }
     try {
-      await requestFriend(targetUser.id, token);
-      setSuccess(`Friend request sent to ${targetUser.username}`);
+      await requestFriend(targetUser.username, token);
+      setSuccess(`Заявка в друзья для ${targetUser.username} отправлена`);
       setTimeout(() => setSuccess(""), 3000);
-      setSearchResults((prev) => prev.filter((foundUser) => foundUser.id !== targetUser.id));
+      abortRef.current?.abort();
+      setIsSearching(false);
+      setSearchResults([]);
+      setSearchQuery("");
     } catch (err: any) {
       setError(err.message || "Failed to send friend request");
     }
@@ -158,7 +171,7 @@ const FriendsPage: React.FC = () => {
   const handleAcceptFriendRequest = async (request: FriendRequest) => {
     if (!token) return;
     try {
-      await acceptFriendRequest(Number(request.from_user_id), token);
+      await acceptFriendRequest(request.id, token);
       await loadData();
       setSuccess("Friend request accepted");
       setTimeout(() => setSuccess(""), 3000);
@@ -170,12 +183,25 @@ const FriendsPage: React.FC = () => {
   const handleDeclineFriendRequest = async (request: FriendRequest) => {
     if (!token) return;
     try {
-      await declineFriendRequest(Number(request.from_user_id), token);
+      await declineFriendRequest(request.id, token);
       await loadData();
       setSuccess("Friend request declined");
       setTimeout(() => setSuccess(""), 3000);
     } catch (err: any) {
       setError(err.message || "Failed to decline friend request");
+    }
+  };
+
+  const handleRemoveFriend = async (friend: Friend) => {
+    if (!token) return;
+
+    try {
+      await removeFriend(friend.username, token);
+      setFriends((current) => current.filter((item) => item.user_id !== friend.user_id));
+      setSuccess(`${friend.username} удалён из друзей`);
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err: any) {
+      setError(err.message || "Failed to remove friend");
     }
   };
 
@@ -185,11 +211,18 @@ const FriendsPage: React.FC = () => {
     });
   };
 
-  const handleVideoCall = (friend: Friend) => {
-    initiateCall("direct", friend.friend_user_id, friend.username);
-  };
+  const handleVideoCall = async (friend: Friend) => {
+    if (!token) return;
 
-  const canMakeCall = callState.status === "idle" || callState.status === "ended";
+    try {
+      const room = await getOrCreateDirectRoom(friend.friend_user_id, token);
+      navigate(`/room/${encodeURIComponent(room.room_id)}`, {
+        state: { roomName: `Private voice with ${friend.username}` },
+      });
+    } catch (err: any) {
+      setError(err.message || "Failed to open private voice room");
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col p-6">
@@ -223,7 +256,7 @@ const FriendsPage: React.FC = () => {
               >
                 <span>{user.username}</span>
                 <Button variant="primary" size="sm" onClick={() => handleSendFriendRequest(user)}>
-                  Отправить заявку
+                  Добавить в друзья
                 </Button>
               </div>
             ))}
@@ -260,7 +293,7 @@ const FriendsPage: React.FC = () => {
 
       <div className="grid gap-4">
         {friends.length === 0 ? (
-          <p className="text-gray-500">Нет друзей. Отправьте заявку, чтобы добавить друзей.</p>
+          <p className="text-gray-500">Нет друзей. Найдите пользователя и добавьте его в друзья.</p>
         ) : (
           friends.map((friend) => (
             <div
@@ -276,10 +309,17 @@ const FriendsPage: React.FC = () => {
                   variant="secondary"
                   size="sm"
                   onClick={() => handleVideoCall(friend)}
-                  disabled={!canMakeCall}
-                  title={canMakeCall ? "Video call" : "Already in a call"}
+                  title="Open private voice room"
                 >
                   <Video className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleRemoveFriend(friend)}
+                  title="Remove friend"
+                >
+                  <Trash2 className="h-5 w-5 text-red-500" />
                 </Button>
               </div>
             </div>

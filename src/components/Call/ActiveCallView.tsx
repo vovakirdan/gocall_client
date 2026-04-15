@@ -389,7 +389,7 @@ const ActiveCallView: React.FC = () => {
               {participants.map((p) => (
                 <VideoTile
                   key={p.sid}
-                  track={p.videoTrack || null}
+                  track={p.cameraTrack || null}
                   audioTrack={p.audioTrack || null}
                   name={p.name}
                   isMuted={p.isMuted}

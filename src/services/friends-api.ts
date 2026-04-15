@@ -1,24 +1,27 @@
 import { FriendRequest, Friend, User } from "../types";
-import { decodeJWT, headers } from "./api";
+import { getUserInfo, headers } from "./api";
 import { API_BASE_URL } from "./config";
 
 interface FriendResponse {
   id: number;
-  user_id: number;
-  friend_id: number;
-  status: "pending" | "accepted" | "blocked";
+  username: string;
+  is_online: boolean;
+  user_id: string;
+  is_pinned: boolean;
   created_at: string;
-  updated_at: string;
-  friend_username?: string;
 }
 
-const toNumericUserID = (token: string): number => {
-  const me = decodeJWT(token);
-  return me?.id ?? 0;
-};
+interface FriendRequestResponse {
+  id: number;
+  from_user_id: string;
+  to_user_id: string;
+  status: "pending" | "accepted" | "declined";
+  created_at: string;
+}
 
+// fetchFriendRequests returns pending incoming friend requests for the current user.
 export async function fetchFriendRequests(token: string): Promise<FriendRequest[]> {
-  const response = await fetch(`${API_BASE_URL}/friends/requests/incoming`, {
+  const response = await fetch(`${API_BASE_URL}/friends/requests`, {
     method: "GET",
     headers: headers(token),
   });
@@ -26,21 +29,42 @@ export async function fetchFriendRequests(token: string): Promise<FriendRequest[
     throw new Error("Failed to fetch friend requests");
   }
 
-  const data = (await response.json()) as FriendResponse[];
-  return data.map((item) => ({
+  const payload = (await response.json()) as { friend_requests?: FriendRequestResponse[] };
+  const requests = payload.friend_requests ?? [];
+
+  const requestsWithUsers = await Promise.all(
+    requests.map(async (item) => {
+      try {
+        const fromUser = await getUserInfo(token, item.from_user_id);
+        return {
+          item,
+          fromUsername: fromUser.username,
+        };
+      } catch {
+        return {
+          item,
+          fromUsername: `user-${item.from_user_id}`,
+        };
+      }
+    })
+  );
+
+  return requestsWithUsers.map(({ item, fromUsername }) => ({
     id: item.id,
-    from_user_id: String(item.user_id),
-    from_username: item.friend_username || `user-${item.user_id}`,
-    to_user_id: String(item.friend_id),
-    status: item.status === "blocked" ? "declined" : item.status,
+    from_user_id: item.from_user_id,
+    from_username: fromUsername,
+    to_user_id: item.to_user_id,
+    status: item.status,
     created_at: item.created_at,
   }));
 }
 
-export async function acceptFriendRequest(userId: number, token: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/friends/${userId}/accept`, {
+// acceptFriendRequest accepts a pending friend request by numeric request ID.
+export async function acceptFriendRequest(requestId: number, token: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/friends/accept`, {
     method: "POST",
     headers: headers(token),
+    body: JSON.stringify({ request_id: requestId }),
   });
   if (!response.ok) {
     const errorData = await response.json();
@@ -48,10 +72,12 @@ export async function acceptFriendRequest(userId: number, token: string): Promis
   }
 }
 
-export async function declineFriendRequest(userId: number, token: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/friends/${userId}/reject`, {
-    method: "DELETE",
+// declineFriendRequest declines a pending friend request by numeric request ID.
+export async function declineFriendRequest(requestId: number, token: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/friends/decline`, {
+    method: "POST",
     headers: headers(token),
+    body: JSON.stringify({ request_id: requestId }),
   });
   if (!response.ok) {
     const errorData = await response.json();
@@ -59,11 +85,12 @@ export async function declineFriendRequest(userId: number, token: string): Promi
   }
 }
 
-export async function requestFriend(friendUserId: number, token: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/friends/requests`, {
+// requestFriend sends a friend request to another user by username.
+export async function requestFriend(friendUsername: string, token: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/friends/request`, {
     method: "POST",
     headers: headers(token),
-    body: JSON.stringify({ user_id: friendUserId }),
+    body: JSON.stringify({ to_username: friendUsername }),
   });
   if (!response.ok) {
     const errorData = await response.json();
@@ -71,6 +98,7 @@ export async function requestFriend(friendUserId: number, token: string): Promis
   }
 }
 
+// fetchFriends returns the current user's accepted friends.
 export async function fetchFriends(token: string): Promise<Friend[]> {
   const response = await fetch(`${API_BASE_URL}/friends`, {
     method: "GET",
@@ -80,36 +108,41 @@ export async function fetchFriends(token: string): Promise<Friend[]> {
     throw new Error("Failed to fetch friends");
   }
 
-  const me = toNumericUserID(token);
-  const data = (await response.json()) as FriendResponse[];
-  return data.map((item) => {
-    const friendUserID = item.user_id === me ? item.friend_id : item.user_id;
-    return {
-      id: item.id,
-      user_id: String(friendUserID),
-      friend_user_id: friendUserID,
-      username: item.friend_username || `user-${friendUserID}`,
-      is_online: false,
-      is_pinned: false,
-      created_at: item.created_at,
-    };
-  });
+  const data = (await response.json()) as { friends?: FriendResponse[] };
+  const friends = data.friends ?? [];
+
+  return friends.map((item) => ({
+    id: item.id,
+    user_id: item.user_id,
+    friend_user_id: item.user_id,
+    username: item.username || `user-${item.user_id}`,
+    is_online: item.is_online,
+    is_pinned: item.is_pinned,
+    created_at: item.created_at,
+  }));
 }
 
+// addFriend creates a friendship directly when the backend supports immediate add flow.
 export async function addFriend(friendUsername: string, token: string): Promise<void> {
-  void friendUsername;
-  void token;
-  throw new Error("User search/add by username is not implemented on this server");
+  return requestFriend(friendUsername, token);
 }
 
+// removeFriend deletes a friendship by target username.
 export async function removeFriend(friendUsername: string, token: string): Promise<void> {
-  void friendUsername;
-  void token;
-  throw new Error("Friend remove endpoint is not implemented on this server");
+  const response = await fetch(`${API_BASE_URL}/friends/remove`, {
+    method: "DELETE",
+    headers: headers(token),
+    body: JSON.stringify({ friend_username: friendUsername }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to remove friend");
+  }
 }
 
+// searchUsers finds candidate users for the friends UI search flow.
 export async function searchUsers(query: string, token: string, signal?: AbortSignal): Promise<User[]> {
-  const response = await fetch(`${API_BASE_URL}/users/search?q=${encodeURIComponent(query)}`, {
+  const response = await fetch(`${API_BASE_URL}/friends/search?q=${encodeURIComponent(query)}`, {
     method: "GET",
     headers: headers(token),
     signal,
@@ -119,8 +152,10 @@ export async function searchUsers(query: string, token: string, signal?: AbortSi
     throw new Error(errorData.error || "Failed to search users");
   }
 
-  const data = (await response.json()) as { id: number; username: string; name: string }[];
-  return data.map((item) => ({
+  const payload = (await response.json()) as { users?: { id: number; username: string; name: string }[] };
+  const users = payload.users ?? [];
+
+  return users.map((item) => ({
     id: item.id,
     user_id: String(item.id),
     username: item.username,
@@ -131,18 +166,21 @@ export async function searchUsers(query: string, token: string, signal?: AbortSi
   }));
 }
 
+// pinFriend marks a friend as pinned in the sidebar.
 export async function pinFriend(friendId: number, token: string): Promise<void> {
   void friendId;
   void token;
   throw new Error("Pin friend is not implemented on this server");
 }
 
+// unpinFriend removes the pinned flag from a friend.
 export async function unpinFriend(friendId: number, token: string): Promise<void> {
   void friendId;
   void token;
   throw new Error("Unpin friend is not implemented on this server");
 }
 
+// fetchPinnedFriends returns pinned friends or an empty list when unsupported.
 export async function fetchPinnedFriends(_token: string): Promise<Friend[]> {
   return [];
 }

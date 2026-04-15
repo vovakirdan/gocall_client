@@ -1,133 +1,192 @@
-/**
- * Chat Page
- * Direct message chat using WireChat WebSocket protocol with direct rooms
- */
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Loader2, Send, Video } from "lucide-react";
 
-import React, { useEffect, useState, useRef } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Send, Video, Loader2 } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
-import { useWebSocketContext } from "../context/WebSocketContext";
-import { useCall } from "../context/CallContext";
-import { getOrCreateDirectRoom } from "../services/rooms-api";
 import Button from "../components/Button";
+import { useAuth } from "../context/AuthContext";
+import { getUserInfo } from "../services/api";
+import {
+  connectDirectChatSocket,
+  fetchDirectChatHistory,
+} from "../services/chat-api";
+import { getOrCreateDirectRoom } from "../services/rooms-api";
+
+interface ChatMessageView {
+  id: number | string;
+  sender_id: string;
+  receiver_id: string;
+  text: string;
+  created_at: string;
+}
 
 const ChatPage: React.FC = () => {
   const { friendId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { user, token } = useAuth();
-  const {
-    joinRoom,
-    leaveRoom,
-    sendMessage,
-    getMessagesForRoom,
-    isConnected,
-  } = useWebSocketContext();
-  const { initiateCall, state: callState } = useCall();
 
-  const [inputMessage, setInputMessage] = useState("");
   const [friendUsername, setFriendUsername] = useState("");
-  const [friendUserId, setFriendUserId] = useState<number | null>(null);
-  const [roomName, setRoomName] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ChatMessageView[]>([]);
+  const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isSocketOpen, setIsSocketOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const socketRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const loadRequestIdRef = useRef(0);
+  const routeState = location.state as { friendUsername?: string } | null;
 
-  // Scroll to bottom when messages change
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  const friendUserID = friendId ? decodeURIComponent(friendId) : "";
 
-  const state = location.state as { friendUsername?: string } | null;
-
-  // Get or create direct room
   useEffect(() => {
-    const initChat = async () => {
-      if (!token || !friendId) return;
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
+  useEffect(() => {
+    const loadChat = async () => {
+      if (!token || !friendUserID) {
+        setIsLoading(false);
+        return;
+      }
+
+      const requestId = loadRequestIdRef.current + 1;
+      loadRequestIdRef.current = requestId;
       setIsLoading(true);
       setError(null);
 
       try {
-        const targetUserID = Number(friendId);
-        if (!Number.isFinite(targetUserID) || targetUserID <= 0) {
-          throw new Error("Invalid friend ID");
+        const [history, friendInfo] = await Promise.all([
+          fetchDirectChatHistory(token, friendUserID),
+          routeState?.friendUsername
+            ? Promise.resolve({
+                id: 0,
+                username: routeState.friendUsername,
+                name: routeState.friendUsername,
+              })
+            : getUserInfo(token, friendUserID),
+        ]);
+
+        if (loadRequestIdRef.current !== requestId) {
+          return;
         }
 
-        setFriendUserId(targetUserID);
-        setFriendUsername(state?.friendUsername || `user-${targetUserID}`);
-
-        // Get or create direct room
-        const directRoom = await getOrCreateDirectRoom(targetUserID, token);
-        const roomIdentifier = directRoom.name || `direct-${directRoom.id}`;
-        setRoomName(roomIdentifier);
-
-        // Join the room
-        if (isConnected) {
-          joinRoom(roomIdentifier);
-        }
+        setMessages(history);
+        setFriendUsername(friendInfo.username || `user-${friendUserID}`);
       } catch (err) {
-        console.error("Failed to initialize chat:", err);
-        setError(err instanceof Error ? err.message : "Failed to initialize chat");
+        if (loadRequestIdRef.current !== requestId) {
+          return;
+        }
+        setError(err instanceof Error ? err.message : "Failed to load chat");
       } finally {
-        setIsLoading(false);
+        if (loadRequestIdRef.current === requestId) {
+          setIsLoading(false);
+        }
       }
     };
 
-    initChat();
-
-  }, [token, friendId, state?.friendUsername, isConnected, joinRoom]);
+    void loadChat();
+  }, [friendUserID, routeState?.friendUsername, token]);
 
   useEffect(() => {
-    return () => {
-      if (roomName) {
-        leaveRoom(roomName);
-      }
-    };
-  }, [roomName, leaveRoom]);
-
-  // Join room when connection is established
-  useEffect(() => {
-    if (roomName && isConnected) {
-      joinRoom(roomName);
+    if (!token || !user?.user_id || !friendUserID) {
+      return undefined;
     }
-  }, [roomName, isConnected, joinRoom]);
 
-  // Get messages for this room
-  const messages = roomName ? getMessagesForRoom(roomName) : [];
+    const socket = connectDirectChatSocket(token, {
+      onOpen: () => setIsSocketOpen(true),
+      onClose: () => setIsSocketOpen(false),
+      onError: () => {
+        setIsSocketOpen(false);
+        setError((current) => current ?? "Chat connection error");
+      },
+      onMessage: (message) => {
+        const isRelevant =
+          (message.from === friendUserID && message.to === user.user_id) ||
+          (message.from === user.user_id && message.to === friendUserID);
 
-  // Scroll to bottom when messages update
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+        if (!isRelevant) {
+          return;
+        }
+
+        setMessages((current) => [
+          ...current,
+          {
+            id: `${message.from}-${Date.now()}`,
+            sender_id: message.from,
+            receiver_id: message.to,
+            text: message.message,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+      },
+    });
+
+    socketRef.current = socket;
+
+    return () => {
+      socket.close(1000, "chat page closed");
+      socketRef.current = null;
+    };
+  }, [friendUserID, token, user?.user_id]);
+
+  const sortedMessages = useMemo(
+    () =>
+      [...messages].sort(
+        (left, right) =>
+          new Date(left.created_at).getTime() - new Date(right.created_at).getTime()
+      ),
+    [messages]
+  );
 
   const handleSend = () => {
-    if (!roomName || !inputMessage.trim()) return;
-    sendMessage(roomName, inputMessage.trim());
+    const text = inputMessage.trim();
+    if (!text || !socketRef.current || socketRef.current.readyState !== WebSocket.OPEN || !user) {
+      return;
+    }
+
+    socketRef.current.send(
+      JSON.stringify({
+        to: friendUserID,
+        message: text,
+      })
+    );
+
+    setMessages((current) => [
+      ...current,
+      {
+        id: `local-${Date.now()}`,
+        sender_id: user.user_id,
+        receiver_id: friendUserID,
+        text,
+        created_at: new Date().toISOString(),
+      },
+    ]);
     setInputMessage("");
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
       handleSend();
     }
   };
 
-  const handleVideoCall = () => {
-    if (friendUserId) {
-      initiateCall("direct", friendUserId, friendUsername);
+  const handleOpenVoiceRoom = async () => {
+    if (!token) return;
+
+    try {
+      const room = await getOrCreateDirectRoom(friendUserID, token);
+      navigate(`/room/${encodeURIComponent(room.room_id)}`, {
+        state: { roomName: `Private voice with ${friendUsername || "friend"}` },
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to open private voice room");
     }
   };
 
-  const canMakeCall = callState.status === "idle" || callState.status === "ended";
-
-  // Format timestamp
-  const formatTime = (ts: number) => {
-    const date = new Date(ts * 1000);
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  };
+  const formatTime = (value: string) =>
+    new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
   if (isLoading) {
     return (
@@ -138,7 +197,7 @@ const ChatPage: React.FC = () => {
     );
   }
 
-  if (error) {
+  if (error && sortedMessages.length === 0) {
     return (
       <div className="flex flex-col h-screen items-center justify-center bg-gray-50 p-4">
         <div className="text-center max-w-md">
@@ -154,7 +213,6 @@ const ChatPage: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
-      {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 bg-white border-b shadow-sm">
         <div className="flex items-center gap-3">
           <button
@@ -164,37 +222,33 @@ const ChatPage: React.FC = () => {
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           </button>
           <div>
-            <h1 className="font-semibold text-gray-900">{friendUsername}</h1>
+            <h1 className="font-semibold text-gray-900">{friendUsername || "Direct chat"}</h1>
             <p className="text-xs text-gray-500">
-              {isConnected ? "Online" : "Connecting..."}
+              {isSocketOpen ? "Connected" : "Connecting..."}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleVideoCall}
-            disabled={!canMakeCall}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
-            title="Video call"
-          >
-            <Video className="w-5 h-5 text-primary" />
-          </button>
-        </div>
+        <button
+          onClick={() => void handleOpenVoiceRoom()}
+          className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          title="Open private voice room"
+        >
+          <Video className="w-5 h-5 text-primary" />
+        </button>
       </header>
 
-      {/* Messages */}
       <main className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 ? (
+        {sortedMessages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-500">
             <p>No messages yet</p>
-            <p className="text-sm">Start the conversation!</p>
+            <p className="text-sm">Start the conversation.</p>
           </div>
         ) : (
-          messages.map((msg, idx) => {
-            const isMe = msg.isLocal || msg.user === user?.username;
+          sortedMessages.map((msg) => {
+            const isMe = msg.sender_id === user?.user_id;
             return (
               <div
-                key={msg.id || idx}
+                key={msg.id}
                 className={`flex ${isMe ? "justify-end" : "justify-start"}`}
               >
                 <div
@@ -210,7 +264,7 @@ const ChatPage: React.FC = () => {
                       isMe ? "text-white/70" : "text-gray-400"
                     }`}
                   >
-                    {formatTime(msg.timestamp)}
+                    {formatTime(msg.created_at)}
                   </p>
                 </div>
               </div>
@@ -220,20 +274,20 @@ const ChatPage: React.FC = () => {
         <div ref={messagesEndRef} />
       </main>
 
-      {/* Input */}
       <div className="p-4 bg-white border-t">
+        {error && <p className="mb-2 text-sm text-red-500">{error}</p>}
         <div className="flex items-center gap-2">
           <input
             type="text"
             value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyDown={handleKeyPress}
+            onChange={(event) => setInputMessage(event.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="Type a message..."
             className="flex-1 px-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
           />
           <button
             onClick={handleSend}
-            disabled={!inputMessage.trim()}
+            disabled={!inputMessage.trim() || !isSocketOpen}
             className="p-3 bg-primary text-white rounded-full hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send className="w-5 h-5" />

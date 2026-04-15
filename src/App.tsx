@@ -12,29 +12,9 @@ import { AuthProvider } from "./context/AuthContext";
 import { isDesktop } from "./utils/platform";
 import SettingsPage from "./pages/SettingsPage";
 import Loader from "./components/Loader";
-import { WebSocketProvider, useWebSocketContext } from "./context/WebSocketContext";
-import { CallProvider } from "./context/CallContext";
-import {
-  IncomingCallModal,
-  OutgoingCallModal,
-  ActiveCallView,
-} from "./components/Call";
+import { RoomVoiceProvider } from "./context/RoomVoiceContext";
 import ChatPage from "./pages/ChatPage";
-
-// Inner component that has access to WebSocket context
-const AppWithCallProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { wirechatClient } = useWebSocketContext();
-
-  return (
-    <CallProvider wirechatClient={wirechatClient}>
-      {children}
-      {/* Global call modals - shown on any page */}
-      <IncomingCallModal />
-      <OutgoingCallModal />
-      <ActiveCallView />
-    </CallProvider>
-  );
-};
+import RoomVoiceDock from "./components/RoomVoiceDock";
 
 function App() {
   const [apiAvailable, setApiAvailable] = useState<boolean | null>(null);
@@ -86,10 +66,9 @@ function App() {
   }
 
   return (
-    <AuthProvider>
-      <WebSocketProvider>
-        <AppWithCallProvider>
-          <Router>
+    <Router>
+      <AuthProvider>
+        <RoomVoiceProvider>
             <Routes>
               <Route path="/login" element={<LoginSignupPage />} />
               {/* Protected routes inside common Layout */}
@@ -103,10 +82,10 @@ function App() {
                 <Route path="/" element={<Navigate to="/home" />} />
               </Route>
             </Routes>
-          </Router>
-        </AppWithCallProvider>
-      </WebSocketProvider>
-    </AuthProvider>
+            <RoomVoiceDock />
+        </RoomVoiceProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 

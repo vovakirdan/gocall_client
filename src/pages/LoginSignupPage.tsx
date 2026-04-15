@@ -19,6 +19,11 @@ const LoginSignupPage: React.FC = () => {
     setSuccessMessage("");
   };
 
+  const switchToLoginMode = () => {
+    setIsLogin(true);
+    setError("");
+  };
+
   const handleSubmit = async () => {
     try {
         setError("");
@@ -47,7 +52,7 @@ const LoginSignupPage: React.FC = () => {
         } else {
             await register(username, password);
             setSuccessMessage("Registration successful! You can now log in.");
-            toggleMode();
+            switchToLoginMode();
         }
     } catch (err: any) {
       setError(err.message || "Operation failed");

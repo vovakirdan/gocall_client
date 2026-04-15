@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { getToken, saveToken, removeToken } from "../adapters/token-adapter";
-import { decodeJWT } from "../services/api";
+import { getMe } from "../services/api";
 import { User } from "../types";
 
 interface AuthContextType {
@@ -12,10 +12,23 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// AuthProvider keeps authenticated user state in sync with token storage and the backend profile.
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [token, setTokenState] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const hydrateUser = async (storedToken: string) => {
+    try {
+      const me = await getMe(storedToken);
+      setUser(me);
+    } catch (error) {
+      console.error("Failed to hydrate current user:", error);
+      await removeToken();
+      setTokenState(null);
+      setUser(null);
+    }
+  };
 
   useEffect(() => {
     const loadTokenAndUser = async () => {
@@ -23,15 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setTokenState(storedToken);
 
       if (storedToken) {
-        const userInfo = decodeJWT(storedToken);
-        if (userInfo) {
-          setUser(userInfo);
-        } else {
-          console.error("Failed to decode token");
-          removeToken();
-          setTokenState(null);
-          setUser(null);
-        }
+        await hydrateUser(storedToken);
       }
 
       setLoading(false);
@@ -44,15 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setTokenState(newToken);
     if (newToken) {
       await saveToken(newToken);
-      const userInfo = decodeJWT(newToken);
-      if (userInfo) {
-        setUser(userInfo);
-      } else {
-        console.error("Failed to decode token");
-        removeToken();
-        setTokenState(null);
-        setUser(null);
-      }
+      await hydrateUser(newToken);
     } else {
       await removeToken();
       setUser(null);
